@@ -1,7 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import ArtworkCard from "@/components/ArtworkCard";
-import { artworks } from "@/data/artworks";
+import { posts } from "@/data/posts";
+import PostCard from "@/components/PostCard";
 
 export default function Home() {
   return (
@@ -20,16 +20,17 @@ export default function Home() {
         </p>
 
         <div className="flex gap-6 flex-wrap justify-center">
-
-          {artworks.map((artwork) => (
-            <ArtworkCard
-              key={artwork.id}
-              id={artwork.id}
-              title={artwork.title}
-              description={artwork.description}
-              author={artwork.author}
-              price={artwork.price}
-              isPaid={artwork.isPaid}
+          {posts.map((post) => (
+            <PostCard
+              key={post.id}
+              id={post.id}
+              title={post.title}
+              excerpt={post.excerpt}
+              author={post.author}
+              createdAt={post.createdAt}
+              price={post.price}
+              isPaid={post.isPaid}
+              commentCount={post.commentCount}
             />
           ))}
 
