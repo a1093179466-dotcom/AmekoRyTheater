@@ -1,6 +1,7 @@
 import Image from "next/image";
 import { posts } from "@/data/posts";
 import CommentSection from "@/components/CommentSection";
+import { prisma } from "@/lib/prisma";
 
 type PageProps = {
   params: Promise<{
@@ -12,7 +13,22 @@ export default async function PostDetailPage({ params }: PageProps) {
   const { id } = await params;
 
   const post = posts.find((item) => item.id === Number(id));
+  const postCommentsFromDb = await prisma.comment.findMany({
+  where: {
+    postId: post.id,
+  },
+  orderBy: {
+    createdAt: "asc",
+  },
+});
 
+const postComments = postCommentsFromDb.map((comment) => ({
+  id: comment.id,
+  postId: comment.postId,
+  username: comment.username,
+  content: comment.content,
+  createdAt: comment.createdAt.toLocaleString(),
+}));
   if (!post) {
     return (
       <main className="min-h-screen bg-black text-white p-10">
@@ -51,7 +67,10 @@ export default async function PostDetailPage({ params }: PageProps) {
           <p>这是免费作品。</p>
         )}
       </div>
-    <CommentSection />
+    <CommentSection
+      postId={post.id}
+      comments={postComments}
+    />
     </main>
   );
 }
