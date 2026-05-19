@@ -1,7 +1,7 @@
 import Image from "next/image";
-import { posts } from "@/data/posts";
-import CommentSection from "@/components/CommentSection";
+
 import { prisma } from "@/lib/prisma";
+import CommentSection from "@/components/CommentSection";
 
 type PageProps = {
   params: Promise<{
@@ -9,34 +9,61 @@ type PageProps = {
   }>;
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function PostDetailPage({ params }: PageProps) {
   const { id } = await params;
 
-  const post = posts.find((item) => item.id === Number(id));
-  const postCommentsFromDb = await prisma.comment.findMany({
-  where: {
-    postId: post.id,
-  },
-  orderBy: {
-    createdAt: "asc",
-  },
-});
+  const postId = Number(id);
 
-const postComments = postCommentsFromDb.map((comment) => ({
-  id: comment.id,
-  postId: comment.postId,
-  username: comment.username,
-  content: comment.content,
-  createdAt: comment.createdAt.toLocaleString(),
-}));
-  if (!post) {
+  if (Number.isNaN(postId)) {
     return (
       <main className="min-h-screen bg-black text-white p-10">
-        <h1 className="text-4xl font-bold mb-6">帖子不存在</h1>
-        <p className="text-zinc-400">没有找到 ID 为 {id} 的帖子。</p>
+        <h1 className="text-4xl font-bold mb-6">
+          帖子不存在
+        </h1>
+
+        <p className="text-zinc-400">
+          无效的帖子 ID：{id}
+        </p>
       </main>
     );
   }
+
+  const post = await prisma.post.findUnique({
+    where: {
+      id: postId,
+    },
+    include: {
+      comments: {
+        orderBy: {
+          createdAt: "asc",
+        },
+      },
+    },
+  });
+
+  if (!post) {
+    return (
+      <main className="min-h-screen bg-black text-white p-10">
+        <h1 className="text-4xl font-bold mb-6">
+          帖子不存在
+        </h1>
+
+        <p className="text-zinc-400">
+          没有找到 ID 为 {id} 的帖子。
+        </p>
+      </main>
+    );
+  }
+
+  const postComments = post.comments.map((comment) => ({
+    id: comment.id,
+    postId: comment.postId,
+    username: comment.username,
+    content: comment.content,
+    createdAt: comment.createdAt.toLocaleString(),
+  }));
 
   return (
     <main className="min-h-screen bg-black text-white p-10">
@@ -53,7 +80,8 @@ const postComments = postCommentsFromDb.map((comment) => ({
       </h1>
 
       <p className="text-zinc-500 mb-6">
-        作者：{post.author} · 发布于 {post.createdAt}
+        作者：{post.author} · 发布于{" "}
+        {post.createdAt.toLocaleDateString()}
       </p>
 
       <p className="text-zinc-300 leading-8 mb-8">
@@ -67,10 +95,11 @@ const postComments = postCommentsFromDb.map((comment) => ({
           <p>这是免费作品。</p>
         )}
       </div>
-    <CommentSection
-      postId={post.id}
-      comments={postComments}
-    />
+
+      <CommentSection
+        postId={post.id}
+        comments={postComments}
+      />
     </main>
   );
 }

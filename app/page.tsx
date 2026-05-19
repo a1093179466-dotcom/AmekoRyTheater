@@ -1,16 +1,30 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { posts } from "@/data/posts";
 import PostCard from "@/components/PostCard";
 
-export default function Home() {
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
+
+export default async function Home() {
+  const posts = await prisma.post.findMany({
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      _count: {
+        select: {
+          comments: true,
+        },
+      },
+    },
+  });
+
   return (
     <main className="min-h-screen bg-black text-white">
-
       <Navbar />
 
-      <section className="flex flex-col items-center pt-24">
-
+      <section className="flex flex-col items-center pt-24 px-6">
         <h1 className="text-6xl font-bold mb-6">
           AmekoRyTheater
         </h1>
@@ -27,19 +41,16 @@ export default function Home() {
               title={post.title}
               excerpt={post.excerpt}
               author={post.author}
-              createdAt={post.createdAt}
+              createdAt={post.createdAt.toLocaleDateString()}
               price={post.price}
               isPaid={post.isPaid}
-              commentCount={post.commentCount}
+              commentCount={post._count.comments}
             />
           ))}
-
         </div>
-
       </section>
 
       <Footer />
-
     </main>
   );
 }
