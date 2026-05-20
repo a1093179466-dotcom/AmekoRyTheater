@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import DashboardBackLink from "@/components/DashboardBackLink";
+
 
 export default function UploadPostPage() {
   const router = useRouter();
@@ -94,6 +96,8 @@ export default function UploadPostPage() {
 
   return (
     <main className="min-h-screen bg-black text-white p-10">
+      <DashboardBackLink />
+      
       <h1 className="text-4xl font-bold mb-8">
         发布新帖子
       </h1>

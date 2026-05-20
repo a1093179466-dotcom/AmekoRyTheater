@@ -7,6 +7,13 @@ export default function DashboardPage() {
         后台管理
       </h1>
 
+      <Link
+        href="/"
+        className="inline-block mb-8 text-zinc-400 hover:text-white underline transition"
+      >
+       ← 返回网站首页
+      </Link>
+      
       <div className="grid gap-4 max-w-2xl">
         <Link
           href="/dashboard/upload"

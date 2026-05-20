@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+import DashboardBackLink from "@/components/DashboardBackLink";
 import { prisma } from "@/lib/prisma";
 import EditPostForm from "@/components/EditPostForm";
 
@@ -60,14 +60,10 @@ export default async function EditPostPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-black text-white p-10">
-      <div className="mb-8">
-        <Link
-          href="/dashboard/posts"
-          className="text-zinc-400 underline"
-        >
-          ← 返回帖子管理
-        </Link>
-      </div>
+      <DashboardBackLink
+        href="/dashboard/posts"
+        label="← 返回帖子管理"
+      />
 
       <h1 className="text-4xl font-bold mb-8">
         编辑帖子

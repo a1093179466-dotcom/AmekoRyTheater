@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import DeletePostButton from "@/components/DeletePostButton";
 import { prisma } from "@/lib/prisma";
+import DashboardBackLink from "@/components/DashboardBackLink";
+
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,8 @@ export default async function DashboardPostsPage() {
 
   return (
     <main className="min-h-screen bg-black text-white p-10">
+      <DashboardBackLink />
+      
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-4xl font-bold">
           帖子管理
