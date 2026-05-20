@@ -88,9 +88,12 @@ export default async function DashboardPostsPage() {
                     查看
                   </Link>
 
-                  <button className="bg-zinc-800 px-4 py-2 rounded-xl text-zinc-500 cursor-not-allowed">
-                    编辑，稍后开发
-                  </button>
+                  <Link
+                    href={`/dashboard/posts/${post.id}/edit`}
+                    className="bg-zinc-800 px-4 py-2 rounded-xl hover:bg-zinc-700 transition"
+                    >
+                    编辑
+                  </Link>
 
                   <DeletePostButton
                     postId={post.id}
