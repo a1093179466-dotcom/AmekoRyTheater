@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-
+import DeletePostButton from "@/components/DeletePostButton";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -92,9 +92,10 @@ export default async function DashboardPostsPage() {
                     编辑，稍后开发
                   </button>
 
-                  <button className="bg-zinc-800 px-4 py-2 rounded-xl text-zinc-500 cursor-not-allowed">
-                    删除，稍后开发
-                  </button>
+                  <DeletePostButton
+                    postId={post.id}
+                    title={post.title}
+                  />
                 </div>
               </div>
             </article>
