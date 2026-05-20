@@ -7,7 +7,7 @@ export default function DashboardPage() {
         后台管理
       </h1>
 
-      <div className="flex flex-col gap-4 max-w-xl">
+      <div className="grid gap-4 max-w-2xl">
         <Link
           href="/dashboard/upload"
           className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 hover:bg-zinc-800 transition"
@@ -18,6 +18,19 @@ export default function DashboardPage() {
 
           <p className="text-zinc-400">
             上传封面图，填写标题、简介、正文和价格。
+          </p>
+        </Link>
+
+        <Link
+          href="/dashboard/posts"
+          className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 hover:bg-zinc-800 transition"
+        >
+          <h2 className="text-2xl font-bold mb-2">
+            管理帖子
+          </h2>
+
+          <p className="text-zinc-400">
+            查看已经发布的帖子，后续会支持编辑、删除和评论管理。
           </p>
         </Link>
       </div>
