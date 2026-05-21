@@ -1,0 +1,53 @@
+import { cookies } from "next/headers";
+
+import { prisma } from "@/lib/prisma";
+
+/**
+ * 读取当前登录用户。
+ *
+ * 工作流程：
+ * 1. 从浏览器 Cookie 里读取 session_token
+ * 2. 用 session_token 去数据库查 Session
+ * 3. 如果 Session 有效，就返回对应的 User
+ * 4. 如果没登录、Session 不存在、Session 过期，就返回 null
+ */
+export async function getCurrentUser() {
+  const cookieStore = await cookies();
+
+  const sessionToken = cookieStore.get("session_token")?.value;
+
+  // 没有 session_token，说明当前用户没有登录
+  if (!sessionToken) {
+    return null;
+  }
+
+  const session = await prisma.session.findUnique({
+    where: {
+      token: sessionToken,
+    },
+
+    // 顺便把这个 Session 对应的用户查出来
+    include: {
+      user: {
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          role: true,
+        },
+      },
+    },
+  });
+
+  // 数据库里找不到这个 Session，说明 Cookie 无效
+  if (!session) {
+    return null;
+  }
+
+  // 如果 Session 已经过期，也视为未登录
+  if (session.expiresAt < new Date()) {
+    return null;
+  }
+
+  return session.user;
+}
