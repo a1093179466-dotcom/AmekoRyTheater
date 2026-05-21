@@ -12,34 +12,68 @@ enum Role {
 }
 
 model User {
-  id           Int      @id @default(autoincrement())
-  email        String   @unique
+  id           Int       @id @default(autoincrement())
+  email        String    @unique
   name         String
   passwordHash String
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
+  role         Role      @default(USER)
+  createdAt    DateTime  @default(now())
+
+  // 一个用户可以有多条登录会话。
+  // 例如：电脑登录一次，手机登录一次。
+  sessions     Session[]
+}
+
+model Session {
+  id        Int      @id @default(autoincrement())
+
+  // 登录凭证，会写入浏览器 Cookie。
+  // 服务器通过这个 token 判断当前是谁登录了。
+  token     String   @unique
+
+  // 当前 Session 属于哪个用户。
+  userId    Int
+
+  // Session 过期时间。
+  // 超过这个时间后，需要重新登录。
+  expiresAt DateTime
+
+  createdAt DateTime @default(now())
+
+  // 建立 Session 和 User 的关系。
+  // 如果用户被删除，对应 Session 也一起删除。
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Post {
-  id           Int       @id @default(autoincrement())
-  title        String
-  excerpt      String
-  content      String
-  coverImage   String
-  author       String
-  isPaid       Boolean   @default(false)
-  price        Int       @default(0)
-  createdAt    DateTime  @default(now())
+  id         Int       @id @default(autoincrement())
+  title      String
+  excerpt    String
+  content    String
+  coverImage String
+  author     String
+  isPaid     Boolean   @default(false)
+  price      Int       @default(0)
+  createdAt  DateTime  @default(now())
 
-  comments     Comment[]
+  // 一个帖子可以有多条评论。
+  comments   Comment[]
 }
 
 model Comment {
   id        Int      @id @default(autoincrement())
+
+  // 当前评论属于哪个帖子。
   postId    Int
+
+  // 现在还先用 username 字符串。
+  // 后面做完用户系统后，会改成真正关联 User。
   username  String
+
   content   String
   createdAt DateTime @default(now())
 
+  // 建立 Comment 和 Post 的关系。
+  // 如果帖子被删除，下面的评论也一起删除。
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
