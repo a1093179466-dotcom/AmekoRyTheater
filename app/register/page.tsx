@@ -7,7 +7,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
-
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   async function handleRegister() {
@@ -23,6 +23,13 @@ export default function RegisterPage() {
 
     if (password.length < 6) {
       alert("密码至少需要 6 位");
+      return;
+    }
+
+    // 确认两次输入的密码是否一致。
+    // 这里只做前端校验，避免用户输错密码。
+    if (password !== confirmPassword) {
+      alert("两次输入的密码不一致");
       return;
     }
 
@@ -98,6 +105,14 @@ export default function RegisterPage() {
           type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+        />
+
+        <input
+          className="bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3"
+          placeholder="确认密码"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
         />
 
         <button

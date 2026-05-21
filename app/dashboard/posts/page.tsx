@@ -3,11 +3,14 @@ import Link from "next/link";
 import DeletePostButton from "@/components/DeletePostButton";
 import { prisma } from "@/lib/prisma";
 import DashboardBackLink from "@/components/DashboardBackLink";
-
+import { requireAdminPage } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPostsPage() {
+  // 只有管理员可以进入帖子管理页
+  await requireAdminPage();
+
   const posts = await prisma.post.findMany({
     orderBy: {
       createdAt: "desc",

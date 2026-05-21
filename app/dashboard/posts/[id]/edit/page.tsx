@@ -2,7 +2,7 @@ import Link from "next/link";
 import DashboardBackLink from "@/components/DashboardBackLink";
 import { prisma } from "@/lib/prisma";
 import EditPostForm from "@/components/EditPostForm";
-
+import { requireAdminPage } from "@/lib/auth";
 type PageProps = {
   params: Promise<{
     id: string;
@@ -12,7 +12,12 @@ type PageProps = {
 export const dynamic = "force-dynamic";
 
 export default async function EditPostPage({ params }: PageProps) {
+  // 只有管理员可以编辑帖子
+  await requireAdminPage();
+
   const { id } = await params;
+
+  // 后面保持原来的逻辑
 
   const postId = Number(id);
 

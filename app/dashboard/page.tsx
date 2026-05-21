@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { requireAdminPage } from "@/lib/auth";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  // 只有管理员可以访问后台首页
+  await requireAdminPage();
+  
   return (
     <main className="min-h-screen bg-black text-white p-10">
       <h1 className="text-4xl font-bold mb-8">

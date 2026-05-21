@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-
+import { isCurrentUserAdmin } from "@/lib/auth";
 import { mkdir, writeFile, unlink } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
@@ -16,6 +16,20 @@ export async function DELETE(
   context: RouteContext
 ) {
   try {
+    // API 权限检查：只有管理员可以删除帖子
+    const isAdmin = await isCurrentUserAdmin();
+
+    if (!isAdmin) {
+      return Response.json(
+        {
+          success: false,
+          message: "没有权限删除帖子",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
     const { id } = await context.params;
 
     const postId = Number(id);
@@ -95,6 +109,20 @@ export async function PATCH(
   context: RouteContext
 ) {
   try {
+        // API 权限检查：只有管理员可以编辑帖子
+    const isAdmin = await isCurrentUserAdmin();
+
+    if (!isAdmin) {
+      return Response.json(
+        {
+          success: false,
+          message: "没有权限编辑帖子",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
     const { id } = await context.params;
     const postId = Number(id);
 

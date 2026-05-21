@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-
+import { isCurrentUserAdmin } from "@/lib/auth";
 import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
@@ -8,6 +8,19 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request) {
   try {
+    // API 权限检查：只有管理员可以创建帖子
+    const isAdmin = await isCurrentUserAdmin();
+    if (!isAdmin) {
+      return Response.json(
+        {
+          success: false,
+          message: "没有权限创建帖子",
+        },
+        {
+          status: 403,
+        }
+      );
+    }
     const formData = await request.formData();
 
     const title = String(formData.get("title") || "").trim();

@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-
+import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 
 /**
@@ -50,4 +50,40 @@ export async function getCurrentUser() {
   }
 
   return session.user;
+}
+
+/**
+ * 页面级管理员权限检查。
+ *
+ * 用在 dashboard 页面里。
+ *
+ * 逻辑：
+ * 1. 没登录：跳转到登录页
+ * 2. 已登录但不是管理员：跳转到首页
+ * 3. 是管理员：返回当前用户
+ */
+export async function requireAdminPage() {
+  const user = await getCurrentUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  if (user.role !== "ADMIN") {
+    redirect("/");
+  }
+
+  return user;
+}
+
+/**
+ * API 级管理员权限检查。
+ *
+ * 用在 route.ts 里。
+ * API 不能用 redirect，而应该返回 JSON 错误。
+ */
+export async function isCurrentUserAdmin() {
+  const user = await getCurrentUser();
+
+  return Boolean(user && user.role === "ADMIN");
 }
