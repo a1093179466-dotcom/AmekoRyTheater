@@ -87,6 +87,8 @@ export default async function DashboardPostsPage() {
                 <div className="flex gap-3">
                   <Link
                     href={`/gallery/${post.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="bg-zinc-800 px-4 py-2 rounded-xl hover:bg-zinc-700 transition"
                   >
                     查看
