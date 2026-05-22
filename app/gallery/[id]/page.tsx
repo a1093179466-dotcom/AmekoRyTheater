@@ -1,5 +1,5 @@
 import Image from "next/image";
-
+import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import CommentSection from "@/components/CommentSection";
 
@@ -57,9 +57,12 @@ export default async function PostDetailPage({ params }: PageProps) {
     );
   }
 
+  const currentUser = await getCurrentUser();
+
   const postComments = post.comments.map((comment) => ({
     id: comment.id,
     postId: comment.postId,
+    userId: comment.userId,
     username: comment.username,
     content: comment.content,
     createdAt: comment.createdAt.toLocaleString(),
@@ -99,6 +102,7 @@ export default async function PostDetailPage({ params }: PageProps) {
       <CommentSection
         postId={post.id}
         comments={postComments}
+        currentUser={currentUser}
       />
     </main>
   );

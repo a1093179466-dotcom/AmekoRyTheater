@@ -19,9 +19,8 @@ model User {
   role         Role      @default(USER)
   createdAt    DateTime  @default(now())
 
-  // 一个用户可以有多条登录会话。
-  // 例如：电脑登录一次，手机登录一次。
   sessions     Session[]
+  comments     Comment[]
 }
 
 model Session {
@@ -63,17 +62,25 @@ model Post {
 model Comment {
   id        Int      @id @default(autoincrement())
 
-  // 当前评论属于哪个帖子。
+  // 当前评论属于哪个帖子
   postId    Int
 
-  // 现在还先用 username 字符串。
-  // 后面做完用户系统后，会改成真正关联 User。
+  // 当前评论属于哪个用户
+  // 这里先允许为空，是为了兼容之前已经存在的测试评论
+  userId    Int?
+
+  // 显示用用户名快照
+  // 即使以后用户改昵称，旧评论也还能显示当时的名字
   username  String
 
   content   String
   createdAt DateTime @default(now())
 
-  // 建立 Comment 和 Post 的关系。
-  // 如果帖子被删除，下面的评论也一起删除。
+  // 评论和帖子关系
+  // 如果帖子被删除，下面的评论也一起删除
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // 评论和用户关系
+  // 如果用户被删除，评论不会强制删除，只是 userId 变为空
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
 }
