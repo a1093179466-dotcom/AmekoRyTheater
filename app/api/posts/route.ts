@@ -70,6 +70,7 @@ export async function POST(request: Request) {
     ).trim();
 
     const rawType = String(formData.get("type") || "WORK");
+    const accessType = String(formData.get("accessType") || "FREE");
 
     // 表单传来的 checkbox 字符串转成 boolean。
     // 前端会传 "true" 或 "false"。
@@ -122,10 +123,27 @@ export async function POST(request: Request) {
 
     // 公告帖不应该设置为付费内容。
     // 所以如果 type 是 NOTICE，就强制价格为 0。
-    const finalPrice = type === "NOTICE" ? 0 : price;
+    // 公告帖永远免费。
+    // 作品帖是否付费，由 accessType 明确决定。
+    const isPaid = type === "WORK" && accessType === "PAID";
 
-    // 价格大于 0，就认为这是付费作品。
-    const isPaid = type === "WORK" && finalPrice > 0;
+    // 免费内容价格强制为 0。
+    // 付费内容使用表单传来的价格。
+    const finalPrice = isPaid ? price : 0;
+
+    // 后端再次校验：付费作品价格必须大于 0。
+    // 这一步不能只靠前端，因为别人可能绕过页面直接请求 API。
+    if (isPaid && finalPrice <= 0) {
+      return Response.json(
+        {
+          success: false,
+          message: "付费作品价格必须大于 0",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
     // 默认封面。
     // 如果用户上传了封面，下面会替换成真实上传路径。
@@ -184,10 +202,14 @@ export async function POST(request: Request) {
         excerpt,
         content,
         previewContent,
-        paidContent,
+        // 免费作品不保存付费隐藏内容。
+        // 这样即使前端误传了 paidContent，数据库也不会保存。
+        paidContent: isPaid ? paidContent : "",
         coverImage,
-        downloadUrl: downloadUrl || null,
-        downloadCode: downloadCode || null,
+        
+        // 免费作品不保存下载链接和提取码。
+        downloadUrl: isPaid && downloadUrl ? downloadUrl : null,
+        downloadCode: isPaid && downloadCode ? downloadCode : null,
         author: "AmekoRy",
         isPaid,
         price: finalPrice,

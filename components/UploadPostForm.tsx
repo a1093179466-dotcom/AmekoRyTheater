@@ -18,6 +18,12 @@ export default function UploadPostForm() {
   // 帖子基础信息
   const [type, setType] = useState("WORK");
   const [title, setTitle] = useState("");
+  // 作品收费类型。
+// FREE = 免费作品
+// PAID = 付费作品
+//
+// 注意：公告帖 NOTICE 永远按免费处理。
+  const [accessType, setAccessType] = useState("FREE");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
 
@@ -91,20 +97,44 @@ export default function UploadPostForm() {
       return;
     }
 
+    // 付费作品价格必须大于 0。
+    if (type === "WORK" && accessType === "PAID" && priceNumber <= 0) {
+      alert("付费作品价格必须大于 0");
+      return;
+    }
+
     setLoading(true);
 
     // 使用 FormData，因为这里可能会上传封面图。
     const formData = new FormData();
 
     formData.append("type", type);
+    formData.append("accessType", accessType);
     formData.append("title", title);
     formData.append("excerpt", excerpt);
     formData.append("content", content);
     formData.append("previewContent", previewContent);
-    formData.append("paidContent", paidContent);
-    formData.append("downloadUrl", downloadUrl);
-    formData.append("downloadCode", downloadCode);
-    formData.append("price", String(Number(price)));
+    // 免费作品不提交付费隐藏内容和下载信息。
+    // 这样数据库里也会保持干净。
+    formData.append(
+      "paidContent",
+      accessType === "PAID" ? paidContent : ""
+    );
+
+    formData.append(
+      "downloadUrl",
+      accessType === "PAID" ? downloadUrl : ""
+    );
+
+    formData.append(
+      "downloadCode",
+      accessType === "PAID" ? downloadCode : ""
+    );
+
+    formData.append(
+      "price",
+      accessType === "PAID" ? String(Number(price)) : "0"
+    );
     formData.append("isPublished", String(isPublished));
     formData.append("isPinned", String(isPinned));
 
@@ -156,7 +186,20 @@ export default function UploadPostForm() {
             <select
               className="bg-black border border-zinc-700 rounded-xl px-4 py-3"
               value={type}
-              onChange={(e) => setType(e.target.value)}
+              onChange={(e) => {
+                const nextType = e.target.value;
+
+                setType(nextType);
+
+                // 如果切换成公告帖，就自动清空售卖相关内容。
+                if (nextType === "NOTICE") {
+                  setAccessType("FREE");
+                  setPrice("0");
+                  setPaidContent("");
+                  setDownloadUrl("");
+                  setDownloadCode("");
+                }
+              }}
             >
               <option value="WORK">作品帖</option>
               <option value="NOTICE">公告帖</option>
@@ -193,31 +236,39 @@ export default function UploadPostForm() {
           <div className="flex flex-col gap-4">
             <textarea
               className="bg-black border border-zinc-700 rounded-xl px-4 py-3 h-32"
-              placeholder="免费预览内容。付费作品可以在这里写试看内容。"
+              placeholder="免费预览内容。免费作品可以写完整说明；付费作品可以写试看内容。"
               value={previewContent}
               onChange={(e) => setPreviewContent(e.target.value)}
             />
 
-            <textarea
-              className="bg-black border border-zinc-700 rounded-xl px-4 py-3 h-40"
-              placeholder="付费隐藏内容。购买后才显示。"
-              value={paidContent}
-              onChange={(e) => setPaidContent(e.target.value)}
-            />
+            {type === "WORK" && accessType === "PAID" ? (
+              <>
+                <textarea
+                  className="bg-black border border-zinc-700 rounded-xl px-4 py-3 h-40"
+                  placeholder="付费隐藏内容。购买后才显示。"
+                  value={paidContent}
+                  onChange={(e) => setPaidContent(e.target.value)}
+                />
 
-            <input
-              className="bg-black border border-zinc-700 rounded-xl px-4 py-3"
-              placeholder="下载链接，例如网盘链接"
-              value={downloadUrl}
-              onChange={(e) => setDownloadUrl(e.target.value)}
-            />
+                <input
+                  className="bg-black border border-zinc-700 rounded-xl px-4 py-3"
+                  placeholder="下载链接，例如网盘链接"
+                  value={downloadUrl}
+                  onChange={(e) => setDownloadUrl(e.target.value)}
+                />
 
-            <input
-              className="bg-black border border-zinc-700 rounded-xl px-4 py-3"
-              placeholder="提取码，没有可以留空"
-              value={downloadCode}
-              onChange={(e) => setDownloadCode(e.target.value)}
-            />
+                <input
+                  className="bg-black border border-zinc-700 rounded-xl px-4 py-3"
+                  placeholder="提取码，没有可以留空"
+                  value={downloadCode}
+                  onChange={(e) => setDownloadCode(e.target.value)}
+                />
+              </>
+            ) : (
+              <p className="text-zinc-500 text-sm">
+                当前是免费作品或公告帖，不需要填写付费隐藏内容和下载信息。
+              </p>
+            )}
           </div>
         </section>
 
@@ -227,12 +278,63 @@ export default function UploadPostForm() {
           </h2>
 
           <div className="flex flex-col gap-4">
-            <input
-              className="bg-black border border-zinc-700 rounded-xl px-4 py-3"
-              placeholder="价格，例如 0 或 30"
-              value={price}
-              onChange={(e) => setPrice(e.target.value)}
-            />
+            {type === "WORK" ? (
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccessType("FREE");
+                    setPrice("0");
+                    setPaidContent("");
+                    setDownloadUrl("");
+                    setDownloadCode("");
+                  }}
+                  className={
+                    accessType === "FREE"
+                      ? "bg-white text-black px-4 py-2 rounded-xl"
+                      : "bg-black border border-zinc-700 px-4 py-2 rounded-xl text-zinc-300"
+                  }
+                >
+                  免费作品
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAccessType("PAID");
+                    if (price === "0" || price === "") {
+                      setPrice("30");
+                    }
+                  }}
+                  className={
+                    accessType === "PAID"
+                      ? "bg-white text-black px-4 py-2 rounded-xl"
+                      : "bg-black border border-zinc-700 px-4 py-2 rounded-xl text-zinc-300"
+                  }
+                >
+                  付费作品
+                </button>
+              </div>
+            ) : (
+              <p className="text-zinc-500 text-sm">
+                公告帖默认免费，不支持设置付费内容。
+              </p>
+            )}
+
+            {type === "WORK" && accessType === "PAID" && (
+              <input
+                className="bg-black border border-zinc-700 rounded-xl px-4 py-3"
+                placeholder="付费作品价格，例如 30"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+              />
+            )}
+
+            {type === "WORK" && accessType === "FREE" && (
+              <p className="text-zinc-500 text-sm">
+                当前选择免费作品，价格会自动保存为 0。
+              </p>
+            )}
 
             <label className="flex items-center gap-3 text-zinc-300">
               <input
