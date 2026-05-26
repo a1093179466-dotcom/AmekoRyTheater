@@ -1,5 +1,5 @@
 import Image from "next/image";
-
+import PurchaseButton from "@/components/PurchaseButton";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import CommentSection from "@/components/CommentSection";
@@ -86,8 +86,32 @@ export default async function PostDetailPage({ params }: PageProps) {
   //
   // 等下一步做买断权限表后，这里会升级成：
   // 管理员 或 已购买用户 可以看完整内容。
+// 查询当前用户是否购买过这篇作品。
+// 管理员不需要购买，永远可以查看完整内容。
+  let hasPurchased = false;
+
+  if (currentUser) {
+    const purchase = await prisma.purchase.findUnique({
+      where: {
+        userId_postId: {
+          userId: currentUser.id,
+          postId: post.id,
+        },
+      },
+    });
+
+    hasPurchased = purchase?.status === "PAID";
+  }
+
+  // 付费内容查看规则：
+  // 1. 免费作品：所有人可看
+  // 2. 管理员：永远可看
+  // 3. 已购买用户：可看
+  // 4. 未购买用户：不可看
   const canViewPaidContent =
-    !post.isPaid || currentUser?.role === "ADMIN";
+    !post.isPaid ||
+    currentUser?.role === "ADMIN" ||
+    hasPurchased;
 
   const postComments = post.comments.map((comment) => ({
     id: comment.id,
@@ -225,15 +249,16 @@ export default async function PostDetailPage({ params }: PageProps) {
                 这是付费作品，购买后可以查看隐藏内容和下载信息。
               </p>
 
-              {currentUser ? (
-                <button className="bg-white text-black px-6 py-3 rounded-xl cursor-not-allowed opacity-60">
-                  购买功能下一步开发
-                </button>
-              ) : (
-                <p className="text-zinc-500">
-                  请先登录账号，之后才能购买作品。
-                </p>
-              )}
+            {currentUser ? (
+            <PurchaseButton
+              postId={post.id}
+              price={post.price}
+            />
+          ) : (
+            <p className="text-zinc-500">
+              请先登录账号，之后才能购买作品。
+            </p>
+            )}
             </div>
           )}
         </section>

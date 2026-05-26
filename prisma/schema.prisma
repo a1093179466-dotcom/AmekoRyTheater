@@ -16,6 +16,12 @@ enum PostType {
   NOTICE
 }
 
+enum PurchaseStatus {
+  PENDING
+  PAID
+  REFUNDED
+}
+
 model User {
   id           Int       @id @default(autoincrement())
   email        String    @unique
@@ -26,6 +32,7 @@ model User {
 
   sessions     Session[]
   comments     Comment[]
+  purchases    Purchase[]
 }
 
 model Session {
@@ -110,6 +117,7 @@ model Post {
   updatedAt  DateTime  @default(now()) @updatedAt
 
   comments   Comment[]
+  purchases  Purchase[]
 }
 
 model Comment {
@@ -136,4 +144,30 @@ model Comment {
   // 评论和用户关系
   // 如果用户被删除，评论不会强制删除，只是 userId 变为空
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Purchase {
+  id        Int            @id @default(autoincrement())
+
+  // 哪个用户购买的
+  userId    Int
+
+  // 购买的是哪篇帖子
+  postId    Int
+
+  // 实际支付金额，单位先用“元”的整数
+  amountPaid Int
+
+  // 购买状态
+  // 当前开发阶段我们会直接创建 PAID
+  // 以后接支付系统时，可以先创建 PENDING，再由支付回调改成 PAID
+  status    PurchaseStatus @default(PAID)
+
+  createdAt DateTime       @default(now())
+
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post           @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // 同一个用户对同一篇帖子只能购买一次
+  @@unique([userId, postId])
 }
