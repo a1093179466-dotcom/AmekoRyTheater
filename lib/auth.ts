@@ -75,7 +75,27 @@ export async function requireAdminPage() {
 
   return user;
 }
+/**
+ * 页面级登录权限检查。
+ *
+ * 用在需要登录才能访问的页面里，比如：
+ * - 个人中心
+ * - 购买记录
+ * - 用户设置
+ *
+ * 逻辑：
+ * 1. 没登录：跳转到登录页
+ * 2. 已登录：返回当前用户
+ */
+export async function requireUserPage() {
+  const user = await getCurrentUser();
 
+  if (!user) {
+    redirect("/login");
+  }
+
+  return user;
+}
 /**
  * API 级管理员权限检查。
  *

@@ -46,7 +46,12 @@ export default async function Navbar() {
               {user.name}
               {user.role === "ADMIN" ? " · 管理员" : ""}
             </span>
-
+            <Link
+              href="/profile"
+              className="text-zinc-300 hover:text-white transition"
+            >
+              个人中心
+            </Link>
             {/* 管理员才显示后台入口 */}
             {user.role === "ADMIN" && (
               <Link

@@ -1,0 +1,104 @@
+import Link from "next/link";
+
+import { prisma } from "@/lib/prisma";
+import { requireUserPage } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+
+export default async function ProfilePage() {
+  // 个人中心必须登录才能访问。
+  // 如果没登录，requireUserPage 会自动跳转到 /login。
+  const user = await requireUserPage();
+
+  // 查询当前用户发表过的评论。
+  // include.post 用来顺便查出这条评论属于哪个帖子。
+  const comments = await prisma.comment.findMany({
+    where: {
+      userId: user.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      post: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
+  });
+
+  return (
+    <main className="min-h-screen bg-black text-white p-10">
+      <div className="mb-8">
+        <Link
+          href="/"
+          className="text-zinc-400 hover:text-white underline transition"
+        >
+          ← 返回首页
+        </Link>
+      </div>
+
+      <h1 className="text-4xl font-bold mb-8">
+        个人中心
+      </h1>
+
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-2xl mb-10">
+        <h2 className="text-2xl font-bold mb-4">
+          账号信息
+        </h2>
+
+        <div className="flex flex-col gap-2 text-zinc-300">
+          <p>
+            昵称：{user.name}
+          </p>
+
+          <p>
+            邮箱：{user.email}
+          </p>
+
+          <p>
+            角色：{user.role === "ADMIN" ? "管理员" : "普通用户"}
+          </p>
+        </div>
+      </section>
+
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-3xl">
+        <h2 className="text-2xl font-bold mb-4">
+          我的评论
+        </h2>
+
+        {comments.length === 0 ? (
+          <p className="text-zinc-400">
+            你还没有发表过评论。
+          </p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {comments.map((comment) => (
+              <article
+                key={comment.id}
+                className="border-b border-zinc-700 pb-4"
+              >
+                <p className="text-zinc-300 mb-2">
+                  {comment.content}
+                </p>
+
+                <p className="text-sm text-zinc-500 mb-2">
+                  发布于：{comment.createdAt.toLocaleString()}
+                </p>
+
+                <Link
+                  href={`/gallery/${comment.post.id}`}
+                  className="text-sm text-zinc-400 hover:text-white underline transition"
+                >
+                  查看帖子：《{comment.post.title}》
+                </Link>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
