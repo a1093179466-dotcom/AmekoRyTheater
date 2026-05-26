@@ -11,7 +11,7 @@ export default async function ProfilePage() {
   const user = await requireUserPage();
 
   // 查询当前用户发表过的评论。
-  // include.post 用来顺便查出这条评论属于哪个帖子。
+  // include.post 用来顺便查出这条评论属于哪篇帖子。
   const comments = await prisma.comment.findMany({
     where: {
       userId: user.id,
@@ -24,6 +24,29 @@ export default async function ProfilePage() {
         select: {
           id: true,
           title: true,
+        },
+      },
+    },
+  });
+
+  // 查询当前用户已经购买过的作品。
+  // 这里只显示 status 为 PAID 的购买记录。
+  const purchases = await prisma.purchase.findMany({
+    where: {
+      userId: user.id,
+      status: "PAID",
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      post: {
+        select: {
+          id: true,
+          title: true,
+          excerpt: true,
+          coverImage: true,
+          price: true,
         },
       },
     },
@@ -62,6 +85,50 @@ export default async function ProfilePage() {
             角色：{user.role === "ADMIN" ? "管理员" : "普通用户"}
           </p>
         </div>
+      </section>
+
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-3xl mb-10">
+        <h2 className="text-2xl font-bold mb-4">
+          已购买作品
+        </h2>
+
+        {purchases.length === 0 ? (
+          <p className="text-zinc-400">
+            你还没有购买过作品。
+          </p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {purchases.map((purchase) => (
+              <article
+                key={purchase.id}
+                className="border-b border-zinc-700 pb-4"
+              >
+                <h3 className="text-xl font-bold mb-2">
+                  {purchase.post.title}
+                </h3>
+
+                <p className="text-zinc-400 mb-2">
+                  {purchase.post.excerpt}
+                </p>
+
+                <p className="text-sm text-zinc-500 mb-2">
+                  购买时间：{purchase.createdAt.toLocaleString()}
+                </p>
+
+                <p className="text-sm text-zinc-500 mb-3">
+                  支付金额：¥{purchase.amountPaid}
+                </p>
+
+                <Link
+                  href={`/gallery/${purchase.post.id}`}
+                  className="inline-block bg-white text-black px-4 py-2 rounded-xl hover:bg-zinc-300 transition"
+                >
+                  查看作品
+                </Link>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-3xl">
