@@ -1,6 +1,7 @@
 import Image from "next/image";
-import { getCurrentUser } from "@/lib/auth";
+
 import { prisma } from "@/lib/prisma";
+import { getCurrentUser } from "@/lib/auth";
 import CommentSection from "@/components/CommentSection";
 
 type PageProps = {
@@ -16,6 +17,7 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   const postId = Number(id);
 
+  // 如果 URL 里的 id 不是数字，比如 /gallery/abc，就直接提示无效
   if (Number.isNaN(postId)) {
     return (
       <main className="min-h-screen bg-black text-white p-10">
@@ -30,6 +32,11 @@ export default async function PostDetailPage({ params }: PageProps) {
     );
   }
 
+  // 读取当前登录用户。
+  // 后面会根据用户身份决定是否显示付费内容。
+  const currentUser = await getCurrentUser();
+
+  // 从数据库读取帖子，并顺便读取评论
   const post = await prisma.post.findUnique({
     where: {
       id: postId,
@@ -57,7 +64,30 @@ export default async function PostDetailPage({ params }: PageProps) {
     );
   }
 
-  const currentUser = await getCurrentUser();
+  // 如果帖子是草稿，并且当前用户不是管理员，则不允许查看
+  if (!post.isPublished && currentUser?.role !== "ADMIN") {
+    return (
+      <main className="min-h-screen bg-black text-white p-10">
+        <h1 className="text-4xl font-bold mb-6">
+          帖子不存在
+        </h1>
+
+        <p className="text-zinc-400">
+          这个帖子暂未发布。
+        </p>
+      </main>
+    );
+  }
+
+  // 当前阶段还没有购买系统，所以访问规则先这样定：
+  // 1. 免费作品：所有人都能看完整内容
+  // 2. 付费作品：管理员可以看完整内容
+  // 3. 付费作品：普通用户 / 游客暂时不能看付费隐藏内容
+  //
+  // 等下一步做买断权限表后，这里会升级成：
+  // 管理员 或 已购买用户 可以看完整内容。
+  const canViewPaidContent =
+    !post.isPaid || currentUser?.role === "ADMIN";
 
   const postComments = post.comments.map((comment) => ({
     id: comment.id,
@@ -70,40 +100,150 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-black text-white p-10">
-      <Image
-        src={post.coverImage}
-        alt={post.title}
-        width={800}
-        height={500}
-        className="rounded-2xl mb-8"
-      />
+      <div className="max-w-4xl mx-auto">
+        <Image
+          src={post.coverImage}
+          alt={post.title}
+          width={900}
+          height={560}
+          className="rounded-2xl mb-8 w-full h-auto"
+        />
 
-      <h1 className="text-4xl font-bold mb-4">
-        {post.title}
-      </h1>
+        <div className="mb-6 flex flex-wrap gap-3 text-sm">
+          <span className="bg-zinc-900 border border-zinc-700 px-3 py-1 rounded-full text-zinc-300">
+            {post.type === "NOTICE" ? "公告" : "作品"}
+          </span>
 
-      <p className="text-zinc-500 mb-6">
-        作者：{post.author} · 发布于{" "}
-        {post.createdAt.toLocaleDateString()}
-      </p>
+          {post.isPinned && (
+            <span className="bg-zinc-900 border border-zinc-700 px-3 py-1 rounded-full text-zinc-300">
+              置顶
+            </span>
+          )}
 
-      <p className="text-zinc-300 leading-8 mb-8">
-        {post.content}
-      </p>
+          {post.isPaid ? (
+            <span className="bg-yellow-900/40 border border-yellow-700 px-3 py-1 rounded-full text-yellow-300">
+              付费作品 ¥{post.price}
+            </span>
+          ) : (
+            <span className="bg-green-900/40 border border-green-700 px-3 py-1 rounded-full text-green-300">
+              免费内容
+            </span>
+          )}
 
-      <div className="bg-zinc-900 p-6 rounded-2xl">
-        {post.isPaid ? (
-          <p>这是付费作品，价格：¥{post.price}</p>
-        ) : (
-          <p>这是免费作品。</p>
+          {!post.isPublished && (
+            <span className="bg-red-900/40 border border-red-700 px-3 py-1 rounded-full text-red-300">
+              草稿，仅管理员可见
+            </span>
+          )}
+        </div>
+
+        <h1 className="text-4xl font-bold mb-4">
+          {post.title}
+        </h1>
+
+        <p className="text-zinc-500 mb-8">
+          作者：{post.author} · 发布于{" "}
+          {post.createdAt.toLocaleDateString()}
+        </p>
+
+        <section className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mb-8">
+          <h2 className="text-2xl font-bold mb-4">
+            作品介绍
+          </h2>
+
+          <p className="text-zinc-300 leading-8 whitespace-pre-line">
+            {post.content}
+          </p>
+        </section>
+
+        {post.previewContent && (
+          <section className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mb-8">
+            <h2 className="text-2xl font-bold mb-4">
+              免费预览
+            </h2>
+
+            <p className="text-zinc-300 leading-8 whitespace-pre-line">
+              {post.previewContent}
+            </p>
+          </section>
         )}
-      </div>
 
-      <CommentSection
-        postId={post.id}
-        comments={postComments}
-        currentUser={currentUser}
-      />
+        <section className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mb-8">
+          <h2 className="text-2xl font-bold mb-4">
+            作品内容
+          </h2>
+
+          {canViewPaidContent ? (
+            <div className="flex flex-col gap-6">
+              {post.paidContent ? (
+                <div>
+                  <h3 className="text-xl font-bold mb-3">
+                    隐藏内容
+                  </h3>
+
+                  <p className="text-zinc-300 leading-8 whitespace-pre-line">
+                    {post.paidContent}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-zinc-400">
+                  这个作品没有填写额外隐藏内容。
+                </p>
+              )}
+
+              {(post.downloadUrl || post.downloadCode) && (
+                <div className="bg-black border border-zinc-700 rounded-xl p-5">
+                  <h3 className="text-xl font-bold mb-3">
+                    下载信息
+                  </h3>
+
+                  {post.downloadUrl && (
+                    <p className="text-zinc-300 mb-2">
+                      下载链接：{" "}
+                      <a
+                        href={post.downloadUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-400 hover:text-blue-300 underline"
+                      >
+                        {post.downloadUrl}
+                      </a>
+                    </p>
+                  )}
+
+                  {post.downloadCode && (
+                    <p className="text-zinc-300">
+                      提取码：{post.downloadCode}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="bg-black border border-zinc-700 rounded-xl p-5">
+              <p className="text-zinc-300 mb-3">
+                这是付费作品，购买后可以查看隐藏内容和下载信息。
+              </p>
+
+              {currentUser ? (
+                <button className="bg-white text-black px-6 py-3 rounded-xl cursor-not-allowed opacity-60">
+                  购买功能下一步开发
+                </button>
+              ) : (
+                <p className="text-zinc-500">
+                  请先登录账号，之后才能购买作品。
+                </p>
+              )}
+            </div>
+          )}
+        </section>
+
+        <CommentSection
+          postId={post.id}
+          comments={postComments}
+          currentUser={currentUser}
+        />
+      </div>
     </main>
   );
 }
