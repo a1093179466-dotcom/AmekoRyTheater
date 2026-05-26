@@ -11,6 +11,11 @@ enum Role {
   ADMIN
 }
 
+enum PostType {
+  WORK
+  NOTICE
+}
+
 model User {
   id           Int       @id @default(autoincrement())
   email        String    @unique
@@ -46,16 +51,64 @@ model Session {
 
 model Post {
   id         Int       @id @default(autoincrement())
-  title      String
-  excerpt    String
-  content    String
-  coverImage String
-  author     String
-  isPaid     Boolean   @default(false)
-  price      Int       @default(0)
-  createdAt  DateTime  @default(now())
 
-  // 一个帖子可以有多条评论。
+  // 帖子类型：
+  // WORK   = 作品帖
+  // NOTICE = 公告帖
+  type       PostType  @default(WORK)
+
+  title      String
+
+  // 首页卡片显示的简短简介
+  excerpt    String
+
+  // 正文介绍内容，所有人都可以看到
+  content    String
+
+  // 免费预览内容。
+  // 对付费作品来说，这里可以放一部分试看内容。
+  previewContent String @default("")
+
+  // 付费隐藏内容。
+  // 只有购买后，或者管理员自己，才能看到。
+  paidContent String @default("")
+
+  // 作品封面图
+  coverImage String
+
+  // 下载链接。
+  // 以后可以放网盘链接、文件链接等。
+  downloadUrl String?
+
+  // 下载提取码。
+  // 如果不需要，可以为空。
+  downloadCode String?
+
+  // 当前先保留作者字段。
+  // 以后如果永远只有你一个作者，也可以固定显示站主名。
+  author     String
+
+  // 是否是付费作品
+  isPaid     Boolean   @default(false)
+
+  // 单篇买断价格
+  price      Int       @default(0)
+
+  // 是否发布。
+  // false 的时候可以作为草稿，不在前台显示。
+  isPublished Boolean  @default(true)
+
+  // 是否置顶。
+  // 以后首页可以优先显示置顶作品。
+  isPinned   Boolean   @default(false)
+
+  createdAt  DateTime  @default(now())
+  
+  // 最后更新时间。
+  // @default(now()) 用来给已有旧数据一个初始时间。
+  // @updatedAt 表示以后每次更新帖子时，Prisma 会自动刷新这个时间。
+  updatedAt  DateTime  @default(now()) @updatedAt
+
   comments   Comment[]
 }
 
