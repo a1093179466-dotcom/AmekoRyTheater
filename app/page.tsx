@@ -7,10 +7,22 @@ import { prisma } from "@/lib/prisma";
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  // 首页只显示已经发布的帖子。
+  // 排序规则：
+  // 1. 置顶帖子排前面
+  // 2. 同样置顶状态下，越新的越靠前
   const posts = await prisma.post.findMany({
-    orderBy: {
-      createdAt: "desc",
+    where: {
+      isPublished: true,
     },
+    orderBy: [
+      {
+        isPinned: "desc",
+      },
+      {
+        createdAt: "desc",
+      },
+    ],
     include: {
       _count: {
         select: {
@@ -33,21 +45,29 @@ export default async function Home() {
           欢迎来到我的个人创作剧场
         </p>
 
-        <div className="flex gap-6 flex-wrap justify-center">
-          {posts.map((post) => (
-            <PostCard
-              key={post.id}
-              id={post.id}
-              title={post.title}
-              excerpt={post.excerpt}
-              author={post.author}
-              createdAt={post.createdAt.toLocaleDateString()}
-              price={post.price}
-              isPaid={post.isPaid}
-              commentCount={post._count.comments}
-            />
-          ))}
-        </div>
+        {posts.length === 0 ? (
+          <p className="text-zinc-500">
+            目前还没有已发布内容。
+          </p>
+        ) : (
+          <div className="flex gap-6 flex-wrap justify-center">
+            {posts.map((post) => (
+              <PostCard
+                key={post.id}
+                id={post.id}
+                type={post.type}
+                title={post.title}
+                excerpt={post.excerpt}
+                author={post.author}
+                createdAt={post.createdAt.toLocaleDateString()}
+                price={post.price}
+                isPaid={post.isPaid}
+                isPinned={post.isPinned}
+                commentCount={post._count.comments}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <Footer />

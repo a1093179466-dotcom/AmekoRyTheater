@@ -12,9 +12,14 @@ export default async function DashboardPostsPage() {
   await requireAdminPage();
 
   const posts = await prisma.post.findMany({
-    orderBy: {
-      createdAt: "desc",
-    },
+    orderBy: [
+      {
+        isPinned: "desc",
+      },
+      {
+        createdAt: "desc",
+      },
+    ],
     include: {
       _count: {
         select: {
@@ -78,9 +83,37 @@ export default async function DashboardPostsPage() {
                     评论：{post._count.comments}
                   </span>
 
-                  <span>
-                    {post.isPaid ? `付费 ¥${post.price}` : "免费"}
-                  </span>
+                  <div className="text-sm text-zinc-500 flex flex-wrap gap-3 mb-4">
+                    <span>
+                      ID：{post.id}
+                    </span>
+
+                    <span>
+                      类型：{post.type === "NOTICE" ? "公告" : "作品"}
+                    </span>
+
+                    <span>
+                      评论：{post._count.comments}
+                    </span>
+
+                    <span>
+                      {post.isPaid ? `付费 ¥${post.price}` : "免费"}
+                    </span>
+
+                    <span>
+                      {post.isPublished ? "已发布" : "草稿"}
+                    </span>
+
+                    {post.isPinned && (
+                      <span>
+                        置顶
+                      </span>
+                    )}
+
+                    <span>
+                      {post.createdAt.toLocaleDateString()}
+                    </span>
+                  </div>
 
                   <span>
                     {post.createdAt.toLocaleDateString()}
