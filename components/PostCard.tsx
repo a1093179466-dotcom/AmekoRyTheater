@@ -19,16 +19,19 @@ type PostCardProps = {
  * 用在：
  * - 首页
  * - 作品列表页
+ * - 公告列表页
  *
- * 它只负责展示，不负责查询数据库。
+ * 它只负责展示卡片，不负责查询数据库。
  */
 export default function PostCard(props: PostCardProps) {
+  const isNotice = props.type === "NOTICE";
+
   return (
     <Link href={`/gallery/${props.id}`}>
       <article className="bg-zinc-900 p-6 rounded-2xl w-80 hover:bg-zinc-800 transition cursor-pointer border border-zinc-800">
         <div className="flex gap-2 mb-3 text-xs">
           <span className="bg-zinc-800 px-2 py-1 rounded-full text-zinc-300">
-            {props.type === "NOTICE" ? "公告" : "作品"}
+            {isNotice ? "公告" : "作品"}
           </span>
 
           {props.isPinned && (
@@ -37,14 +40,16 @@ export default function PostCard(props: PostCardProps) {
             </span>
           )}
 
-          {props.isPaid ? (
-            <span className="bg-red-900/40 px-2 py-1 rounded-full text-red-300">
-              付费
-            </span>
-          ) : (
-            <span className="bg-green-900/40 px-2 py-1 rounded-full text-green-300">
-              免费
-            </span>
+          {!isNotice && (
+            props.isPaid ? (
+              <span className="bg-red-900/40 px-2 py-1 rounded-full text-red-300">
+                付费
+              </span>
+            ) : (
+              <span className="bg-green-900/40 px-2 py-1 rounded-full text-green-300">
+                免费
+              </span>
+            )
           )}
         </div>
 
@@ -66,7 +71,11 @@ export default function PostCard(props: PostCardProps) {
 
         <div className="mt-4 flex justify-between text-sm text-zinc-300">
           <span>
-            {props.isPaid ? `¥${props.price}` : "免费"}
+            {isNotice
+              ? "公告通知"
+              : props.isPaid
+                ? `¥${props.price}`
+                : "免费"}
           </span>
 
           <span>

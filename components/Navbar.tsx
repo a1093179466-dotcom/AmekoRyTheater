@@ -33,6 +33,13 @@ export default async function Navbar() {
         </Link>
 
         <Link
+          href="/notices"
+          className="text-zinc-300 hover:text-white transition"
+        >
+          公告
+        </Link>
+
+        <Link
           href="/about"
           className="text-zinc-300 hover:text-white transition"
         >
