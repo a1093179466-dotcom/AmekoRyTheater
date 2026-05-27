@@ -41,3 +41,18 @@ yarn-error.log*
 next-env.d.ts
 
 /app/generated/prisma
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Next.js build output
+.next
+
+# Dependencies
+node_modules
+
+# Local uploaded files
+public/uploads/*
+!public/uploads/.gitkeep
