@@ -44,6 +44,18 @@ export default async function DashboardPage() {
             查看已经发布的帖子，后续会支持编辑、删除和评论管理。
           </p>
         </Link>
+        <Link
+          href="/dashboard/purchases"
+          className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 hover:bg-zinc-800 transition"
+        >
+          <h2 className="text-2xl font-bold mb-2">
+            购买记录
+          </h2>
+
+          <p className="text-zinc-400">
+            查看用户购买了哪些作品，后续会支持退款、撤销权限和手动补发权限。
+          </p>
+        </Link>
       </div>
     </main>
   );
