@@ -109,7 +109,7 @@ export async function PATCH(
   context: RouteContext
 ) {
   try {
-        // API 权限检查：只有管理员可以编辑帖子
+    // API 权限检查：只有管理员可以编辑帖子
     const isAdmin = await isCurrentUserAdmin();
 
     if (!isAdmin) {
@@ -123,10 +123,11 @@ export async function PATCH(
         }
       );
     }
+
     const { id } = await context.params;
     const postId = Number(id);
 
-    // 1. 校验 URL 里的帖子 ID 是否有效
+    // 校验 URL 里的帖子 ID 是否有效
     if (Number.isNaN(postId)) {
       return Response.json(
         {
@@ -139,7 +140,8 @@ export async function PATCH(
       );
     }
 
-    // 2. 先查询旧帖子，后面需要用旧封面路径
+    // 先查询旧帖子。
+    // 后面需要根据旧封面路径决定是否删除旧图片。
     const oldPost = await prisma.post.findUnique({
       where: {
         id: postId,
@@ -158,53 +160,128 @@ export async function PATCH(
       );
     }
 
-    // 3. 编辑帖子同样使用 FormData，因为可能会上传新封面图
+    // 编辑帖子可能上传新封面，所以继续使用 FormData。
     const formData = await request.formData();
 
     const title = String(formData.get("title") || "").trim();
     const excerpt = String(formData.get("excerpt") || "").trim();
     const content = String(formData.get("content") || "").trim();
+
+    const previewContent = String(
+      formData.get("previewContent") || ""
+    ).trim();
+
+    const paidContent = String(
+      formData.get("paidContent") || ""
+    ).trim();
+
+    const downloadUrl = String(
+      formData.get("downloadUrl") || ""
+    ).trim();
+
+    const downloadCode = String(
+      formData.get("downloadCode") || ""
+    ).trim();
+
+    const rawType = String(formData.get("type") || "WORK");
+    const accessType = String(formData.get("accessType") || "FREE");
+
+    const isPublished =
+      String(formData.get("isPublished")) === "true";
+
+    const isPinned =
+      String(formData.get("isPinned")) === "true";
+
     const price = Number(formData.get("price") || 0);
+
     const image = formData.get("image");
 
-    // 4. 基础表单校验
+    const type = rawType === "NOTICE" ? "NOTICE" : "WORK";
+
+    // 基础表单校验
     if (!title) {
       return Response.json(
-        { success: false, message: "标题不能为空" },
-        { status: 400 }
+        {
+          success: false,
+          message: "标题不能为空",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     if (!excerpt) {
       return Response.json(
-        { success: false, message: "简介不能为空" },
-        { status: 400 }
+        {
+          success: false,
+          message: "简介不能为空",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     if (!content) {
       return Response.json(
-        { success: false, message: "正文不能为空" },
-        { status: 400 }
+        {
+          success: false,
+          message: "正文不能为空",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     if (Number.isNaN(price) || price < 0) {
       return Response.json(
-        { success: false, message: "价格必须是大于等于 0 的数字" },
-        { status: 400 }
+        {
+          success: false,
+          message: "价格必须是大于等于 0 的数字",
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    // 5. 默认继续使用旧封面
+    // 公告帖永远免费。
+    // 作品帖是否付费，由 accessType 决定。
+    const isPaid = type === "WORK" && accessType === "PAID";
+
+    // 免费内容价格强制为 0。
+    // 付费内容使用表单传来的价格。
+    const finalPrice = isPaid ? price : 0;
+
+    // 后端再次校验：付费作品价格必须大于 0。
+    if (isPaid && finalPrice <= 0) {
+      return Response.json(
+        {
+          success: false,
+          message: "付费作品价格必须大于 0",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // 默认沿用旧封面。
+    // 如果用户上传了新封面，下面会替换成新路径。
     let coverImage = oldPost.coverImage;
 
-    // 6. 如果用户上传了新图片，就保存新图片
     if (image instanceof File && image.size > 0) {
       if (!image.type.startsWith("image/")) {
         return Response.json(
-          { success: false, message: "只能上传图片文件" },
-          { status: 400 }
+          {
+            success: false,
+            message: "只能上传图片文件",
+          },
+          {
+            status: 400,
+          }
         );
       }
 
@@ -212,8 +289,13 @@ export async function PATCH(
 
       if (image.size > maxSize) {
         return Response.json(
-          { success: false, message: "图片不能超过 5MB" },
-          { status: 400 }
+          {
+            success: false,
+            message: "图片不能超过 5MB",
+          },
+          {
+            status: 400,
+          }
         );
       }
 
@@ -239,22 +321,31 @@ export async function PATCH(
       coverImage = `/uploads/${fileName}`;
     }
 
-    // 7. 更新数据库里的帖子信息
+    // 更新数据库。
+    // 免费作品不保存付费隐藏内容、下载链接和提取码。
     const updatedPost = await prisma.post.update({
       where: {
         id: postId,
       },
       data: {
+        type,
         title,
         excerpt,
         content,
+        previewContent,
+        paidContent: isPaid ? paidContent : "",
         coverImage,
-        isPaid: price > 0,
-        price,
+        downloadUrl: isPaid && downloadUrl ? downloadUrl : null,
+        downloadCode: isPaid && downloadCode ? downloadCode : null,
+        isPaid,
+        price: finalPrice,
+        isPublished,
+        isPinned,
       },
     });
 
-    // 8. 如果上传了新封面，并且旧封面也是上传文件，就删除旧封面
+    // 如果上传了新封面，并且旧封面也是 public/uploads 里的上传文件，
+    // 就删除旧封面，避免本地 uploads 文件越来越多。
     if (
       coverImage !== oldPost.coverImage &&
       oldPost.coverImage.startsWith("/uploads/")

@@ -77,11 +77,19 @@ export default async function EditPostPage({ params }: PageProps) {
       <EditPostForm
         post={{
           id: post.id,
+          type: post.type,
           title: post.title,
           excerpt: post.excerpt,
           content: post.content,
+          previewContent: post.previewContent,
+          paidContent: post.paidContent,
           coverImage: post.coverImage,
+          downloadUrl: post.downloadUrl,
+          downloadCode: post.downloadCode,
+          isPaid: post.isPaid,
           price: post.price,
+          isPublished: post.isPublished,
+          isPinned: post.isPinned,
         }}
       />
     </main>
