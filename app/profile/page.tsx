@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+import { formatDateTime } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 import { requireUserPage } from "@/lib/auth";
 
@@ -112,7 +112,7 @@ export default async function ProfilePage() {
                 </p>
 
                 <p className="text-sm text-zinc-500 mb-2">
-                  购买时间：{purchase.createdAt.toLocaleString()}
+                  购买时间：{formatDateTime(purchase.createdAt)}
                 </p>
 
                 <p className="text-sm text-zinc-500 mb-3">
@@ -152,7 +152,7 @@ export default async function ProfilePage() {
                 </p>
 
                 <p className="text-sm text-zinc-500 mb-2">
-                  发布于：{comment.createdAt.toLocaleString()}
+                  发布于：{formatDateTime(comment.createdAt)}
                 </p>
 
                 <Link

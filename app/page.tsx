@@ -1,7 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PostCard from "@/components/PostCard";
-
+import { formatDate } from "@/lib/format";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +59,7 @@ export default async function Home() {
                 title={post.title}
                 excerpt={post.excerpt}
                 author={post.author}
-                createdAt={post.createdAt.toLocaleDateString()}
+                createdAt={formatDate(post.createdAt)}
                 price={post.price}
                 isPaid={post.isPaid}
                 isPinned={post.isPinned}

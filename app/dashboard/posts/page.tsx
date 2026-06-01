@@ -4,7 +4,7 @@ import DeletePostButton from "@/components/DeletePostButton";
 import { prisma } from "@/lib/prisma";
 import DashboardBackLink from "@/components/DashboardBackLink";
 import { requireAdminPage } from "@/lib/auth";
-
+import { formatDate } from "@/lib/format";
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPostsPage() {
@@ -111,7 +111,7 @@ export default async function DashboardPostsPage() {
                     )}
 
                     <span>
-                      {post.createdAt.toLocaleDateString()}
+                      {formatDate(post.createdAt)}
                     </span>
                   </div>
 

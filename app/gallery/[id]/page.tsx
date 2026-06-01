@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import CommentSection from "@/components/CommentSection";
 import PostStatusBadges from "@/components/PostStatusBadges";
-
+import { formatDate, formatDateTime } from "@/lib/format";
 type PageProps = {
   params: Promise<{
     id: string;
@@ -120,7 +120,7 @@ export default async function PostDetailPage({ params }: PageProps) {
     userId: comment.userId,
     username: comment.username,
     content: comment.content,
-    createdAt: comment.createdAt.toLocaleString(),
+    createdAt: formatDateTime(comment.createdAt),
   }));
 
   return (
@@ -151,7 +151,7 @@ export default async function PostDetailPage({ params }: PageProps) {
 
         <p className="text-zinc-500 mb-8">
           作者：{post.author} · 发布于{" "}
-          {post.createdAt.toLocaleDateString()}
+          {formatDate(post.createdAt)}
         </p>
 
         <section className="bg-zinc-900 border border-zinc-800 p-6 rounded-2xl mb-8">
