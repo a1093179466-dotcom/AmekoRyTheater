@@ -3,6 +3,7 @@ import PurchaseButton from "@/components/PurchaseButton";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import CommentSection from "@/components/CommentSection";
+import PostStatusBadges from "@/components/PostStatusBadges";
 
 type PageProps = {
   params: Promise<{
@@ -133,32 +134,15 @@ export default async function PostDetailPage({ params }: PageProps) {
           className="rounded-2xl mb-8 w-full h-auto"
         />
 
-        <div className="mb-6 flex flex-wrap gap-3 text-sm">
-          <span className="bg-zinc-900 border border-zinc-700 px-3 py-1 rounded-full text-zinc-300">
-            {post.type === "NOTICE" ? "公告" : "作品"}
-          </span>
-
-          {post.isPinned && (
-            <span className="bg-zinc-900 border border-zinc-700 px-3 py-1 rounded-full text-zinc-300">
-              置顶
-            </span>
-          )}
-
-          {post.isPaid ? (
-            <span className="bg-yellow-900/40 border border-yellow-700 px-3 py-1 rounded-full text-yellow-300">
-              付费作品 ¥{post.price}
-            </span>
-          ) : (
-            <span className="bg-green-900/40 border border-green-700 px-3 py-1 rounded-full text-green-300">
-              免费内容
-            </span>
-          )}
-
-          {!post.isPublished && (
-            <span className="bg-red-900/40 border border-red-700 px-3 py-1 rounded-full text-red-300">
-              草稿，仅管理员可见
-            </span>
-          )}
+        <div className="mb-6">
+          <PostStatusBadges
+            type={post.type}
+            isPaid={post.isPaid}
+            isPinned={post.isPinned}
+            isPublished={post.isPublished}
+            showPublishedStatus={true}
+            price={post.price}
+          />
         </div>
 
         <h1 className="text-4xl font-bold mb-4">
