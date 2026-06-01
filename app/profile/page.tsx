@@ -1,18 +1,32 @@
 import Link from "next/link";
-import { formatDateTime } from "@/lib/format";
+
 import { prisma } from "@/lib/prisma";
 import { requireUserPage } from "@/lib/auth";
+import { formatDateTime } from "@/lib/format";
+import PayOrderButton from "@/components/PayOrderButton";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * 用户个人中心页面
+ *
+ * 当前功能：
+ * - 显示账号信息
+ * - 显示订单记录
+ * - 显示已购买作品
+ * - 显示我的评论
+ */
 export default async function ProfilePage() {
   // 个人中心必须登录才能访问。
   // 如果没登录，requireUserPage 会自动跳转到 /login。
   const user = await requireUserPage();
 
-  // 查询当前用户发表过的评论。
-  // include.post 用来顺便查出这条评论属于哪篇帖子。
-  const comments = await prisma.comment.findMany({
+  // 查询当前用户的订单记录。
+  // 订单记录代表“购买流程”本身：
+  // - PENDING：待支付
+  // - PAID：已支付
+  // - CANCELLED：已取消
+  const orders = await prisma.order.findMany({
     where: {
       userId: user.id,
     },
@@ -24,13 +38,16 @@ export default async function ProfilePage() {
         select: {
           id: true,
           title: true,
+          excerpt: true,
+          isPaid: true,
+          price: true,
         },
       },
     },
   });
 
   // 查询当前用户已经购买过的作品。
-  // 这里只显示 status 为 PAID 的购买记录。
+  // Purchase 表代表“已经获得访问权限”。
   const purchases = await prisma.purchase.findMany({
     where: {
       userId: user.id,
@@ -51,6 +68,40 @@ export default async function ProfilePage() {
       },
     },
   });
+
+  // 查询当前用户发表过的评论。
+  const comments = await prisma.comment.findMany({
+    where: {
+      userId: user.id,
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    include: {
+      post: {
+        select: {
+          id: true,
+          title: true,
+        },
+      },
+    },
+  });
+
+  function getOrderStatusLabel(status: string) {
+    if (status === "PENDING") {
+      return "待支付";
+    }
+
+    if (status === "PAID") {
+      return "已支付";
+    }
+
+    if (status === "CANCELLED") {
+      return "已取消";
+    }
+
+    return status;
+  }
 
   return (
     <main className="min-h-screen bg-black text-white p-10">
@@ -85,6 +136,89 @@ export default async function ProfilePage() {
             角色：{user.role === "ADMIN" ? "管理员" : "普通用户"}
           </p>
         </div>
+      </section>
+
+      <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-3xl mb-10">
+        <h2 className="text-2xl font-bold mb-4">
+          我的订单
+        </h2>
+
+        {orders.length === 0 ? (
+          <p className="text-zinc-400">
+            你还没有创建过订单。
+          </p>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {orders.map((order) => (
+              <article
+                key={order.id}
+                className="border-b border-zinc-700 pb-4"
+              >
+                <div className="flex items-start justify-between gap-4 mb-3">
+                  <div>
+                    <h3 className="text-xl font-bold mb-2">
+                      {order.post.title}
+                    </h3>
+
+                    <p className="text-zinc-400 mb-2">
+                      {order.post.excerpt}
+                    </p>
+                  </div>
+
+                  <span className="bg-zinc-800 px-3 py-1 rounded-full text-sm text-zinc-300">
+                    {getOrderStatusLabel(order.status)}
+                  </span>
+                </div>
+
+                <div className="text-sm text-zinc-500 flex flex-col gap-1 mb-4">
+                  <p>
+                    订单号：{order.id}
+                  </p>
+
+                  <p>
+                    订单金额：¥{order.amount}
+                  </p>
+
+                  <p>
+                    创建时间：{formatDateTime(order.createdAt)}
+                  </p>
+
+                  {order.paidAt && (
+                    <p>
+                      支付时间：{formatDateTime(order.paidAt)}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex gap-3">
+                  {order.status === "PENDING" && (
+                    <PayOrderButton
+                      orderId={order.id}
+                      postId={order.post.id}
+                      amount={order.amount}
+                    />
+                  )}
+
+                  {order.status === "PAID" && (
+                    <Link
+                      href={`/gallery/${order.post.id}`}
+                      className="inline-block bg-white text-black px-4 py-2 rounded-xl hover:bg-zinc-300 transition"
+                    >
+                      查看作品
+                    </Link>
+                  )}
+
+                  <Link
+                    href={`/orders/${order.id}`}
+                    className="inline-block bg-zinc-800 px-4 py-2 rounded-xl hover:bg-zinc-700 transition"
+                  >
+                    查看订单
+                  </Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 max-w-3xl mb-10">
