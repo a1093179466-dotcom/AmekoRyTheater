@@ -10,9 +10,11 @@ import { getCurrentUser } from "@/lib/auth";
  * 当前作用：
  * 用户点击“购买作品”后，先创建一条待支付订单。
  *
- * 注意：
- * 这里不直接解锁作品。
- * 真正解锁要等订单支付成功后，由 /api/orders/[id]/pay 创建 Purchase。
+ * 订单规则：
+ * 1. 已购买作品，不再创建订单
+ * 2. 只复用“未过期的待支付订单”
+ * 3. 已取消订单不会复用
+ * 4. 已过期待支付订单会先自动改成 CANCELLED
  */
 export async function POST(request: Request) {
   try {
@@ -109,12 +111,47 @@ export async function POST(request: Request) {
       );
     }
 
-    // 如果已经有待支付订单，就复用旧订单，避免重复创建一堆订单。
+    const now = new Date();
+
+    /**
+     * 关键修复：
+     *
+     * 在创建新订单之前，先把当前用户对当前作品的
+     * 所有“已经过期的待支付订单”改成 CANCELLED。
+     *
+     * 这样后面查找待支付订单时，就不会复用旧的过期订单。
+     */
+    await prisma.order.updateMany({
+      where: {
+        userId: currentUser.id,
+        postId: post.id,
+        status: "PENDING",
+        expiresAt: {
+          lte: now,
+        },
+      },
+      data: {
+        status: "CANCELLED",
+      },
+    });
+
+    /**
+     * 只复用仍然有效的待支付订单。
+     *
+     * 注意：
+     * - status 必须是 PENDING
+     * - expiresAt 必须大于当前时间
+     *
+     * CANCELLED 订单不会被复用。
+     */
     const existingPendingOrder = await prisma.order.findFirst({
       where: {
         userId: currentUser.id,
         postId: post.id,
         status: "PENDING",
+        expiresAt: {
+          gt: now,
+        },
       },
       orderBy: {
         createdAt: "desc",
@@ -129,14 +166,23 @@ export async function POST(request: Request) {
       });
     }
 
+    // 订单有效期：2 分钟
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
+
+    /**
+     * 创建新的待支付订单。
+     *
+     * 注意：
+     * amount 保存的是下单时的价格快照。
+     * 以后作品价格变化，不影响已有订单金额。
+     */
     const order = await prisma.order.create({
       data: {
         userId: currentUser.id,
         postId: post.id,
-
-        // 记录下单时价格，后续即使作品价格变化，订单金额也不变。
         amount: post.price,
         status: "PENDING",
+        expiresAt,
       },
     });
 

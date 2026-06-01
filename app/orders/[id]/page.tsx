@@ -46,7 +46,19 @@ export default async function OrderDetailPage({ params }: PageProps) {
       </main>
     );
   }
-
+  // 如果订单已经过期，进入订单页时自动标记为取消
+  await prisma.order.updateMany({
+    where: {
+      id: orderId,
+      status: "PENDING",
+      expiresAt: {
+        lte: new Date(),
+      },
+    },
+    data: {
+      status: "CANCELLED",
+    },
+  });
   const order = await prisma.order.findUnique({
     where: {
       id: orderId,
@@ -141,6 +153,11 @@ export default async function OrderDetailPage({ params }: PageProps) {
             <p>订单金额：¥{order.amount}</p>
             <p>订单状态：{statusLabel}</p>
             <p>创建时间：{formatDateTime(order.createdAt)}</p>
+            {order.expiresAt && (
+              <p>
+                过期时间：{formatDateTime(order.expiresAt)}
+              </p>
+            )}
 
             {order.paidAt && (
               <p>
@@ -164,6 +181,7 @@ export default async function OrderDetailPage({ params }: PageProps) {
               orderId={order.id}
               postId={order.post.id}
               amount={order.amount}
+              expiresAt={order.expiresAt?.toISOString() ?? null}
             />
           </section>
         )}

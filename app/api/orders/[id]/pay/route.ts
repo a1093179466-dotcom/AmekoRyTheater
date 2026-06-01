@@ -109,7 +109,28 @@ export async function POST(
         }
       );
     }
+    // 如果订单已经超过过期时间，则自动取消，不能再支付
+    if (order.expiresAt && order.expiresAt <= new Date()) {
+      const cancelledOrder = await prisma.order.update({
+        where: {
+          id: order.id,
+        },
+        data: {
+          status: "CANCELLED",
+        },
+      });
 
+      return Response.json(
+        {
+          success: false,
+          message: "订单已超时取消，请重新下单",
+          order: cancelledOrder,
+        },
+        {
+          status: 400,
+        }
+      );
+    }
     if (!order.post.isPaid) {
       return Response.json(
         {

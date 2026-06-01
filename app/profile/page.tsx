@@ -26,6 +26,19 @@ export default async function ProfilePage() {
   // - PENDING：待支付
   // - PAID：已支付
   // - CANCELLED：已取消
+  // 进入个人中心时，自动取消当前用户已经超时的待支付订单
+  await prisma.order.updateMany({
+    where: {
+      userId: user.id,
+      status: "PENDING",
+      expiresAt: {
+        lte: new Date(),
+      },
+    },
+    data: {
+      status: "CANCELLED",
+    },
+  });
   const orders = await prisma.order.findMany({
     where: {
       userId: user.id,
@@ -196,6 +209,7 @@ export default async function ProfilePage() {
                       orderId={order.id}
                       postId={order.post.id}
                       amount={order.amount}
+                      expiresAt={order.expiresAt?.toISOString() ?? null}
                     />
                   )}
 

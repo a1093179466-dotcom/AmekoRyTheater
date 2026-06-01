@@ -201,7 +201,10 @@ model Order {
   // 支付完成时间。
   // 未支付时为空。
   paidAt    DateTime?
-
+  // 订单过期时间。
+  // 当前开发阶段设为创建订单后 2 分钟。
+  // 超过这个时间未支付，就视为订单取消。
+  expiresAt DateTime?
   createdAt DateTime    @default(now())
   updatedAt DateTime    @default(now()) @updatedAt
 
