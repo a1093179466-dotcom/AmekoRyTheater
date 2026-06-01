@@ -11,15 +11,20 @@ type PurchaseButtonProps = {
 /**
  * 购买按钮
  *
- * 当前阶段是模拟购买：
- * 点击后直接调用 /api/purchases，创建买断权限。
+ * 当前逻辑：
+ * 1. 点击购买
+ * 2. 创建 Order 订单
+ * 3. 跳转到订单确认页 /orders/[id]
+ *
+ * 注意：
+ * 这里不直接创建 Purchase。
+ * Purchase 只会在订单支付成功后创建。
  */
 export default function PurchaseButton({
   postId,
   price,
 }: PurchaseButtonProps) {
   const router = useRouter();
-
   const [loading, setLoading] = useState(false);
 
   async function handlePurchase() {
@@ -33,12 +38,11 @@ export default function PurchaseButton({
 
     setLoading(true);
 
-    const response = await fetch("/api/purchases", {
+    const response = await fetch("/api/orders", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-
       body: JSON.stringify({
         postId,
       }),
@@ -49,19 +53,16 @@ export default function PurchaseButton({
     setLoading(false);
 
     if (!response.ok) {
-      alert(result.message || "购买失败");
+      alert(result.message || "创建订单失败");
       return;
     }
 
     if (!result.success) {
-      alert(result.message || "购买失败");
+      alert(result.message || "创建订单失败");
       return;
     }
 
-    alert(result.message || "购买成功");
-
-    // 刷新当前页面，让服务端重新判断是否已购买
-    router.refresh();
+    router.push(`/orders/${result.order.id}`);
   }
 
   return (
@@ -70,7 +71,7 @@ export default function PurchaseButton({
       disabled={loading}
       className="bg-white text-black px-6 py-3 rounded-xl hover:bg-zinc-300 transition disabled:bg-zinc-500"
     >
-      {loading ? "购买中..." : `购买作品 ¥${price}`}
+      {loading ? "创建订单中..." : `购买作品 ¥${price}`}
     </button>
   );
 }

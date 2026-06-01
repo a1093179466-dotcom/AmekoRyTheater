@@ -22,6 +22,12 @@ enum PurchaseStatus {
   REFUNDED
 }
 
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+}
+
 model User {
   id           Int       @id @default(autoincrement())
   email        String    @unique
@@ -29,7 +35,7 @@ model User {
   passwordHash String
   role         Role      @default(USER)
   createdAt    DateTime  @default(now())
-
+  orders       Order[]
   sessions     Session[]
   comments     Comment[]
   purchases    Purchase[]
@@ -118,6 +124,7 @@ model Post {
 
   comments   Comment[]
   purchases  Purchase[]
+  orders       Order[]
 }
 
 model Comment {
@@ -170,4 +177,34 @@ model Purchase {
 
   // 同一个用户对同一篇帖子只能购买一次
   @@unique([userId, postId])
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+
+  // 哪个用户创建的订单
+  userId    Int
+
+  // 订单购买的是哪篇作品
+  postId    Int
+
+  // 下单时的金额快照
+  // 即使以后作品价格变化，旧订单金额也不会跟着变。
+  amount    Int
+
+  // 订单状态：
+  // PENDING   待支付
+  // PAID      已支付
+  // CANCELLED 已取消
+  status    OrderStatus @default(PENDING)
+
+  // 支付完成时间。
+  // 未支付时为空。
+  paidAt    DateTime?
+
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @default(now()) @updatedAt
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
