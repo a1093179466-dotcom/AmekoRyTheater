@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-
+import { generateOrderNo } from "@/lib/order";
 /**
  * 创建订单 API
  *
@@ -178,6 +178,7 @@ export async function POST(request: Request) {
      */
     const order = await prisma.order.create({
       data: {
+        orderNo: generateOrderNo(),
         userId: currentUser.id,
         postId: post.id,
         amount: post.price,

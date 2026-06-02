@@ -210,4 +210,18 @@ model Order {
 
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   post      Post        @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+    // 商户订单号。
+  // 这是我们自己系统生成的订单号。
+  // 以后接入樱奈 EPAY 时，可以对应支付接口里的 out_trade_no。
+  orderNo   String?     @unique
+
+  // 支付平台订单号。
+  // 以后接入真实支付后，用来保存樱奈 EPAY 返回的 trade_no。
+  providerTradeNo String?
+
+  // 支付方式。
+  // 以后可以保存 alipay / wxpay 等。
+  paymentType String?
 }
+

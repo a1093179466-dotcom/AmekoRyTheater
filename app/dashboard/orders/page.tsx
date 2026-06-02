@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+import { getDisplayOrderNo } from "@/lib/order";
 import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
@@ -130,7 +130,7 @@ export default async function DashboardOrdersPage() {
                   </h2>
 
                   <p className="text-sm text-zinc-500">
-                    订单号：{order.id}
+                    订单号：{getDisplayOrderNo(order)}
                   </p>
                 </div>
 

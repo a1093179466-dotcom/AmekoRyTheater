@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-
+import { getDisplayOrderNo } from "@/lib/order";
 import { prisma } from "@/lib/prisma";
 import { requireUserPage } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
@@ -148,7 +148,13 @@ export default async function OrderDetailPage({ params }: PageProps) {
           </h2>
 
           <div className="flex flex-col gap-2 text-zinc-300">
-            <p>订单号：{order.id}</p>
+            <p>
+              订单号：{getDisplayOrderNo(order)}
+            </p>
+
+            <p className="text-zinc-500">
+              内部 ID：{order.id}
+            </p>
             <p>购买用户：{order.user.name}（{order.user.email}）</p>
             <p>订单金额：¥{order.amount}</p>
             <p>订单状态：{statusLabel}</p>

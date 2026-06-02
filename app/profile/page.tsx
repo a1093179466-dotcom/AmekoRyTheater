@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+import { getDisplayOrderNo } from "@/lib/order";
 import { prisma } from "@/lib/prisma";
 import { requireUserPage } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
@@ -185,7 +185,7 @@ export default async function ProfilePage() {
 
                 <div className="text-sm text-zinc-500 flex flex-col gap-1 mb-4">
                   <p>
-                    订单号：{order.id}
+                    订单号：{getDisplayOrderNo(order)}
                   </p>
 
                   <p>
