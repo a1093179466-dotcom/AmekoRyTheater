@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+import AuthPageShell from "@/components/AuthPageShell";
+
 export default function LoginPage() {
   const router = useRouter();
 
@@ -13,7 +15,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   async function handleLogin() {
-    // 1. 前端基础校验，避免空数据直接发给后端
+    // 前端基础校验，避免空数据直接发给后端
     if (!email.trim()) {
       alert("邮箱不能为空");
       return;
@@ -26,7 +28,6 @@ export default function LoginPage() {
 
     setLoading(true);
 
-    // 2. 请求登录 API
     const response = await fetch("/api/auth/login", {
       method: "POST",
       headers: {
@@ -53,10 +54,8 @@ export default function LoginPage() {
       return;
     }
 
-    alert("登录成功");
-
-    // 3. 登录成功后，根据角色跳转。
-    // 目前普通用户回首页，管理员进后台。
+    // 登录成功后根据角色跳转。
+    // 管理员进入后台，普通用户回首页。
     if (result.user.role === "ADMIN") {
       router.push("/dashboard");
     } else {
@@ -67,51 +66,59 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-black text-white p-10">
-      <div className="mb-8">
-        <Link
-          href="/"
-          className="text-zinc-400 hover:text-white underline transition"
-        >
-          ← 返回首页
-        </Link>
-      </div>
+    <AuthPageShell
+      title="登录账号"
+      subtitle="欢迎回来。登录后即可查看订单、购买记录和发表评论。"
+    >
+      <div className="flex flex-col gap-4">
+        <label className="flex flex-col gap-2">
+          <span className="text-sm text-zinc-400">
+            邮箱
+          </span>
 
-      <h1 className="text-4xl font-bold mb-8">
-        登录账号
-      </h1>
+          <input
+            className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-rose-300/60"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
 
-      <div className="flex flex-col gap-4 max-w-md">
-        <input
-          className="bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3"
-          placeholder="邮箱"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <label className="flex flex-col gap-2">
+          <span className="text-sm text-zinc-400">
+            密码
+          </span>
 
-        <input
-          className="bg-zinc-900 border border-zinc-700 rounded-xl px-4 py-3"
-          placeholder="密码"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            className="rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:border-rose-300/60"
+            placeholder="请输入密码"
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
 
         <button
           onClick={handleLogin}
           disabled={loading}
-          className="bg-white text-black rounded-xl px-6 py-3 hover:bg-zinc-300 transition disabled:bg-zinc-500"
+          className="mt-3 rounded-full bg-white px-6 py-3 font-medium text-black hover:bg-rose-100 transition disabled:bg-zinc-500"
         >
           {loading ? "登录中..." : "登录"}
         </button>
 
-        <Link
-          href="/register"
-          className="text-zinc-400 hover:text-white underline transition"
-        >
-          没有账号？去注册
-        </Link>
+        <div className="mt-4 flex items-center justify-between text-sm">
+          <Link
+            href="/register"
+            className="text-zinc-400 hover:text-white underline transition"
+          >
+            没有账号？去注册
+          </Link>
+
+          <span className="text-zinc-600">
+            找回密码稍后开放
+          </span>
+        </div>
       </div>
-    </main>
+    </AuthPageShell>
   );
 }
