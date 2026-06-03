@@ -78,6 +78,7 @@ export default async function NoticesPage() {
                 isPaid={notice.isPaid}
                 isPinned={notice.isPinned}
                 commentCount={notice._count.comments}
+                coverImage={post.coverImage}
               />
             ))}
           </div>

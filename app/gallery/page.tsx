@@ -66,6 +66,7 @@ export default async function GalleryPage() {
                 isPaid={post.isPaid}
                 isPinned={post.isPinned}
                 commentCount={post._count.comments}
+                coverImage={post.coverImage}
               />
             ))}
           </div>
