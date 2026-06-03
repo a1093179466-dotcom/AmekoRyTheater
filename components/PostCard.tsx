@@ -81,7 +81,7 @@ export default function PostCard(props: PostCardProps) {
               {isNotice
                 ? "公告通知"
                 : props.isPaid
-                  ? `买断 ¥${props.price}`
+                  ? `付费 ¥${props.price}`
                   : "免费阅读"}
             </span>
 

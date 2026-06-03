@@ -104,7 +104,7 @@ model Post {
   // 是否是付费作品
   isPaid     Boolean   @default(false)
 
-  // 单篇买断价格
+  // 单篇付费价格
   price      Int       @default(0)
 
   // 是否发布。

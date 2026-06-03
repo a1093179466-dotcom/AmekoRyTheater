@@ -4,7 +4,8 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
-
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 import CommentSection from "@/components/CommentSection";
 import PurchaseButton from "@/components/PurchaseButton";
 import PostStatusBadges from "@/components/PostStatusBadges";
@@ -137,6 +138,7 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
+      <Navbar />
       <section className="relative overflow-hidden">
         <div className="absolute left-1/2 top-0 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-rose-500/20 blur-3xl" />
         <div className="absolute right-10 top-40 h-[260px] w-[260px] rounded-full bg-amber-400/10 blur-3xl" />
@@ -305,7 +307,7 @@ export default async function PostDetailPage({ params }: PageProps) {
                         </h3>
 
                         <p className="mb-5 leading-7 text-zinc-300">
-                          这是单篇买断作品。购买后可以永久查看隐藏内容、下载链接和提取码。
+                          这是单篇付费作品。购买后可以永久查看隐藏内容、下载链接和提取码。
                         </p>
 
                         {currentUser ? (
@@ -359,7 +361,7 @@ export default async function PostDetailPage({ params }: PageProps) {
                     <div className="flex justify-between gap-4">
                       <span>价格</span>
                       <span className="text-zinc-200">
-                        {post.isPaid ? `买断 ¥${post.price}` : "免费"}
+                        {post.isPaid ? `付费 ¥${post.price}` : "免费"}
                       </span>
                     </div>
                   )}
@@ -397,6 +399,7 @@ export default async function PostDetailPage({ params }: PageProps) {
           </article>
         </div>
       </section>
+      <Footer />
     </main>
   );
 }
