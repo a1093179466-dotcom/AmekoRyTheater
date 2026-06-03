@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserPage } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import PayOrderButton from "@/components/PayOrderButton";
+import CancelOrderButton from "@/components/CancelOrderButton";
 
 type PageProps = {
   params: Promise<{
@@ -152,9 +153,6 @@ export default async function OrderDetailPage({ params }: PageProps) {
               订单号：{getDisplayOrderNo(order)}
             </p>
 
-            <p className="text-zinc-500">
-              内部 ID：{order.id}
-            </p>
             <p>购买用户：{order.user.name}（{order.user.email}）</p>
             <p>订单金额：¥{order.amount}</p>
             <p>订单状态：{statusLabel}</p>
@@ -183,12 +181,15 @@ export default async function OrderDetailPage({ params }: PageProps) {
               当前阶段还没有接入真实支付。点击下面按钮会模拟支付成功，并解锁该作品。
             </p>
 
-            <PayOrderButton
-              orderId={order.id}
-              postId={order.post.id}
-              amount={order.amount}
-              expiresAt={order.expiresAt?.toISOString() ?? null}
-            />
+            <div className="flex gap-3">
+              <PayOrderButton
+                orderId={order.id}
+                postId={order.post.id}
+                amount={order.amount}
+                expiresAt={order.expiresAt?.toISOString() ?? null}
+              />
+              <CancelOrderButton orderId={order.id} />
+            </div>
           </section>
         )}
 

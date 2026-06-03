@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-
+import { useRouter } from "next/navigation";
 export default function RegisterPage() {
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
-
+  const router = useRouter();
   async function handleRegister() {
     if (!email.trim()) {
       alert("邮箱不能为空");
@@ -62,11 +62,12 @@ export default function RegisterPage() {
       return;
     }
 
-    alert("注册成功，下一步我们会开发登录功能");
+    alert("注册成功，请登录账号");
 
     setEmail("");
     setName("");
     setPassword("");
+    router.push("/login");
   }
 
   return (

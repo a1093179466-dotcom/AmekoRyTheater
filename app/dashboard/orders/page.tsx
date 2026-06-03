@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import DashboardBackLink from "@/components/DashboardBackLink";
-
+import CancelOrderButton from "@/components/CancelOrderButton";
 export const dynamic = "force-dynamic";
 
 /**
@@ -195,6 +195,10 @@ export default async function DashboardOrdersPage() {
                 >
                   查看作品
                 </Link>
+
+                {order.status === "PENDING" && (
+                  <CancelOrderButton orderId={order.id} />
+                )}
               </div>
             </article>
           ))}

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUserPage } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import PayOrderButton from "@/components/PayOrderButton";
-
+import CancelOrderButton from "@/components/CancelOrderButton";
 export const dynamic = "force-dynamic";
 
 /**
@@ -205,12 +205,16 @@ export default async function ProfilePage() {
 
                 <div className="flex gap-3">
                   {order.status === "PENDING" && (
-                    <PayOrderButton
-                      orderId={order.id}
-                      postId={order.post.id}
-                      amount={order.amount}
-                      expiresAt={order.expiresAt?.toISOString() ?? null}
-                    />
+                    <>
+                      <PayOrderButton
+                        orderId={order.id}
+                        postId={order.post.id}
+                        amount={order.amount}
+                        expiresAt={order.expiresAt?.toISOString() ?? null}
+                      />
+
+                      <CancelOrderButton orderId={order.id} />
+                    </>
                   )}
 
                   {order.status === "PAID" && (

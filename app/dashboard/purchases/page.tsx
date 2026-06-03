@@ -142,13 +142,6 @@ export default async function DashboardPurchasesPage() {
                   >
                     查看作品
                   </Link>
-
-                  <button
-                    className="bg-zinc-800 px-4 py-2 rounded-xl text-zinc-500 cursor-not-allowed"
-                    disabled
-                  >
-                    退款/撤销权限，稍后开发
-                  </button>
                 </div>
               </div>
             </article>
