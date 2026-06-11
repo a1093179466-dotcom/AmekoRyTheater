@@ -225,3 +225,23 @@ model Order {
   paymentType String?
 }
 
+model SiteSetting {
+  id Int @id
+
+  siteTitle    String @default("AmekoRyTheater")
+  siteSubtitle String @default("Personal Creation Theater")
+
+  homeHeroTitle    String @default("AmekoRyTheater")
+  homeHeroSubtitle String @default("个人创作者内容剧场")
+
+  tickerEnabled Boolean @default(false)
+  tickerText    String  @default("")
+
+  aboutText        String @default("")
+  contactEmail     String @default("")
+  externalLinkText String @default("")
+  externalLinkUrl  String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

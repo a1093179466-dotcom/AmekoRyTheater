@@ -154,6 +154,12 @@ export default async function DashboardPage() {
       badge: "Posts",
     },
     {
+      href: "/dashboard/settings",
+      title: "站点设置",
+      description: "修改首页文案、滚动公告、联系信息和站点说明。",
+      badge: "Settings",
+    },
+    {
       href: "/dashboard/orders",
       title: "订单管理",
       description: "查看待支付、已支付、已取消订单，以及订单号和支付状态。",
@@ -239,7 +245,7 @@ export default async function DashboardPage() {
                   管理入口
                 </h2>
               </div>
-
+              
               <div className="grid gap-4 md:grid-cols-2">
                 {managementLinks.map((item) => (
                   <Link

@@ -1,13 +1,17 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PostCard from "@/components/PostCard";
+import SiteTicker from "@/components/SiteTicker";
 
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
+import { getSiteSetting } from "@/lib/siteSetting";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+  const setting = await getSiteSetting();
+
   // 首页只展示已发布内容。
   // 置顶优先，其次按发布时间倒序。
   const posts = await prisma.post.findMany({
@@ -38,6 +42,8 @@ export default async function Home() {
     <main className="min-h-screen bg-[#050505] text-white">
       <Navbar />
 
+      <SiteTicker />
+
       <section className="relative overflow-hidden px-6 py-24">
         <div className="absolute left-1/2 top-0 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-rose-500/20 blur-3xl" />
         <div className="absolute right-10 top-32 h-[260px] w-[260px] rounded-full bg-amber-400/10 blur-3xl" />
@@ -46,19 +52,18 @@ export default async function Home() {
         <div className="relative mx-auto max-w-7xl">
           <div className="mb-16 max-w-3xl">
             <p className="mb-4 text-sm font-medium uppercase tracking-[0.35em] text-rose-300">
-              Personal Creation Theater
+              {setting.siteSubtitle || "Personal Creation Theater"}
             </p>
 
-            <h1 className="mb-6 text-6xl font-black tracking-tight md:text-7xl">
-              AmekoRy
-              <span className="block bg-gradient-to-r from-rose-200 via-fuchsia-200 to-amber-100 bg-clip-text text-transparent">
-                Theater
+            <h1 className="mb-6 max-w-4xl text-6xl font-black tracking-tight md:text-7xl">
+              <span className="bg-gradient-to-r from-rose-100 via-fuchsia-100 to-amber-100 bg-clip-text text-transparent">
+                {setting.homeHeroTitle || "AmekoRyTheater"}
               </span>
             </h1>
 
             <p className="max-w-2xl text-lg leading-8 text-zinc-400">
-              一个用于发布个人作品、公告通知与付费内容的创作者剧场。
-              在这里可以浏览免费内容，也可以购买单篇作品解锁隐藏内容。
+              {setting.homeHeroSubtitle ||
+                "一个用于发布个人作品、公告通知与付费内容的创作者剧场。在这里可以浏览免费内容，也可以购买单篇作品解锁隐藏内容。"}
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
@@ -85,6 +90,7 @@ export default async function Home() {
                   <p className="mb-2 text-sm uppercase tracking-[0.25em] text-rose-300">
                     Featured
                   </p>
+
                   <h2 className="text-3xl font-bold">
                     推荐内容
                   </h2>
@@ -122,6 +128,7 @@ export default async function Home() {
                 <p className="mb-2 text-sm uppercase tracking-[0.25em] text-zinc-500">
                   Latest
                 </p>
+
                 <h2 className="text-3xl font-bold">
                   最新发布
                 </h2>
