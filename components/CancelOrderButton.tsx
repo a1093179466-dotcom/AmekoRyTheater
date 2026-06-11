@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
+import { useFeedback } from "@/components/FeedbackProvider";
 type CancelOrderButtonProps = {
   orderId: number;
 };
@@ -19,11 +19,15 @@ export default function CancelOrderButton({
 }: CancelOrderButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
+  const { toast, confirm: showConfirm } = useFeedback();
   async function handleCancel() {
-    const confirmed = window.confirm(
-      "确定要取消这个订单吗？取消后需要重新下单。"
-    );
+    const confirmed = await showConfirm({
+      title: "取消订单",
+      message: "确定要取消这个订单吗？取消后如需购买，需要重新创建订单。",
+      confirmText: "取消订单",
+      cancelText: "再想想",
+      danger: true,
+    });
 
     if (!confirmed) {
       return;
@@ -40,7 +44,7 @@ export default function CancelOrderButton({
     setLoading(false);
 
     if (!response.ok) {
-      alert(result.message || "取消订单失败");
+      toast(result.message || "取消订单失败", "error");
       router.refresh();
       return;
     }
@@ -51,7 +55,7 @@ export default function CancelOrderButton({
       return;
     }
 
-    alert(result.message || "订单已取消");
+    toast(result.message || "订单已取消", "success");
 
     router.refresh();
   }

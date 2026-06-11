@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
+import { useFeedback } from "@/components/FeedbackProvider";
 type PurchaseButtonProps = {
   postId: number;
   price: number;
@@ -26,11 +26,14 @@ export default function PurchaseButton({
 }: PurchaseButtonProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
+  const { toast, confirm: showConfirm } = useFeedback();
   async function handlePurchase() {
-    const confirmed = window.confirm(
-      `确定购买这个作品吗？价格：¥${price}`
-    );
+    const confirmed = await showConfirm({
+      title: "确认购买",
+      message: `确定购买这个作品吗？价格：¥${price}`,
+      confirmText: "确认购买",
+      cancelText: "再想想",
+    });
 
     if (!confirmed) {
       return;
@@ -53,12 +56,12 @@ export default function PurchaseButton({
     setLoading(false);
 
     if (!response.ok) {
-      alert(result.message || "创建订单失败");
+      toast(result.message || "创建订单失败", "error");
       return;
     }
 
     if (!result.success) {
-      alert(result.message || "创建订单失败");
+      toast(result.message || "创建订单失败", "error");
       return;
     }
 

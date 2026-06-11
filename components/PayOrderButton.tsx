@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-
+import { useFeedback } from "@/components/FeedbackProvider";
 type PayOrderButtonProps = {
   orderId: number;
   postId: number;
@@ -34,7 +34,7 @@ export default function PayOrderButton({
 
   const [loading, setLoading] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
-
+  const { toast, confirm: showConfirm } = useFeedback();
   useEffect(() => {
     if (!expiresAt) {
       setSecondsLeft(null);
@@ -66,13 +66,16 @@ export default function PayOrderButton({
 
   async function handlePay() {
     if (isExpired) {
-      alert("订单已超时，请重新下单");
+      toast("订单已超时，请重新下单", "error");
       return;
     }
 
-    const confirmed = window.confirm(
-      `模拟支付 ¥${amount}？`
-    );
+    const confirmed = await showConfirm({
+      title: "确认支付",
+      message: "确定要模拟支付这个订单吗？支付成功后将解锁对应作品。",
+      confirmText: "确认支付",
+      cancelText: "取消",
+    });
 
     if (!confirmed) {
       return;
@@ -89,18 +92,18 @@ export default function PayOrderButton({
     setLoading(false);
 
     if (!response.ok) {
-      alert(result.message || "支付失败");
+      toast(result.message || "支付失败", "error");
       router.refresh();
       return;
     }
 
     if (!result.success) {
-      alert(result.message || "支付失败");
+      toast(result.message || "支付失败", "error");
       router.refresh();
       return;
     }
 
-    alert(result.message || "支付成功");
+    toast(result.message || "支付成功", "success");
 
     router.push(`/gallery/${postId}`);
     router.refresh();
