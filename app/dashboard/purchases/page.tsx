@@ -2,33 +2,45 @@ import Link from "next/link";
 
 import { prisma } from "@/lib/prisma";
 import { requireAdminPage } from "@/lib/auth";
-import DashboardBackLink from "@/components/DashboardBackLink";
+import { formatDateTime } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
-/**
- * 后台购买记录管理页面。
- *
- * 作用：
- * 管理员查看所有用户的购买记录。
- *
- * 目前阶段：
- * - 购买记录来自模拟购买
- * - status = PAID 表示已经获得访问权限
- *
- * 以后接真实支付时：
- * - PENDING 可以表示待支付
- * - PAID 表示支付成功
- * - REFUNDED 表示已退款
- */
+function getPurchaseStatusText(status: string) {
+  if (status === "PENDING") {
+    return "待确认";
+  }
+
+  if (status === "PAID") {
+    return "已解锁";
+  }
+
+  if (status === "REFUNDED") {
+    return "已退款";
+  }
+
+  return status;
+}
+
+function getPurchaseStatusClassName(status: string) {
+  if (status === "PAID") {
+    return "border-emerald-500/30 bg-emerald-500/10 text-emerald-200";
+  }
+
+  if (status === "PENDING") {
+    return "border-yellow-500/30 bg-yellow-500/10 text-yellow-200";
+  }
+
+  if (status === "REFUNDED") {
+    return "border-zinc-500/30 bg-zinc-500/10 text-zinc-300";
+  }
+
+  return "border-white/10 bg-white/5 text-zinc-300";
+}
+
 export default async function DashboardPurchasesPage() {
-  // 后台页面必须先检查管理员权限。
-  // 普通用户即使手动输入网址，也不能访问。
   await requireAdminPage();
 
-  // 查询所有购买记录。
-  // include.user：顺便查出购买者信息。
-  // include.post：顺便查出被购买的作品信息。
   const purchases = await prisma.purchase.findMany({
     orderBy: {
       createdAt: "desc",
@@ -37,15 +49,15 @@ export default async function DashboardPurchasesPage() {
       user: {
         select: {
           id: true,
-          name: true,
           email: true,
-          role: true,
+          name: true,
         },
       },
       post: {
         select: {
           id: true,
           title: true,
+          type: true,
           price: true,
           isPaid: true,
         },
@@ -53,101 +65,205 @@ export default async function DashboardPurchasesPage() {
     },
   });
 
-  /**
-   * 把数据库里的英文状态转换成界面上更好理解的中文。
-   */
-  function getStatusLabel(status: string) {
-    if (status === "PAID") {
-      return "已支付";
-    }
+  const activePurchases = purchases.filter(
+    (purchase) => purchase.status === "PAID"
+  );
 
-    if (status === "PENDING") {
-      return "待支付";
-    }
+  const refundedCount = purchases.filter(
+    (purchase) => purchase.status === "REFUNDED"
+  ).length;
 
-    if (status === "REFUNDED") {
-      return "已退款";
-    }
+  const uniqueUserCount = new Set(
+    activePurchases.map((purchase) => purchase.userId)
+  ).size;
 
-    return status;
-  }
+  const uniquePostCount = new Set(
+    activePurchases.map((purchase) => purchase.postId)
+  ).size;
+
+  const totalAmount = activePurchases.reduce(
+    (sum, purchase) => sum + Number(purchase.amountPaid),
+    0
+  );
 
   return (
-    <main className="min-h-screen bg-black text-white p-10">
-      <DashboardBackLink />
+    <main className="min-h-screen bg-[#050505] text-white">
+      <section className="relative overflow-hidden px-6 py-12">
+        <div className="absolute left-1/2 top-0 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-rose-500/20 blur-3xl" />
+        <div className="absolute right-10 top-40 h-[260px] w-[260px] rounded-full bg-amber-400/10 blur-3xl" />
+        <div className="absolute bottom-0 left-10 h-[260px] w-[260px] rounded-full bg-fuchsia-500/10 blur-3xl" />
 
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-4xl font-bold">
-          购买记录管理
-        </h1>
-
-        <Link
-          href="/dashboard/posts"
-          className="bg-zinc-800 px-5 py-3 rounded-xl hover:bg-zinc-700 transition"
-        >
-          返回帖子管理
-        </Link>
-      </div>
-
-      {purchases.length === 0 ? (
-        <p className="text-zinc-400">
-          目前还没有购买记录。
-        </p>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {purchases.map((purchase) => (
-            <article
-              key={purchase.id}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5"
+        <div className="relative mx-auto max-w-7xl">
+          <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+            <Link
+              href="/dashboard"
+              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition"
             >
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-4">
-                  <h2 className="text-2xl font-bold">
-                    {purchase.post.title}
-                  </h2>
+              ← 返回后台
+            </Link>
 
-                  <span className="bg-zinc-800 px-3 py-1 rounded-full text-sm text-zinc-300">
-                    {getStatusLabel(purchase.status)}
-                  </span>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/dashboard/orders"
+                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition"
+              >
+                订单管理
+              </Link>
+
+              <Link
+                href="/dashboard/posts"
+                className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition"
+              >
+                内容管理
+              </Link>
+            </div>
+          </div>
+
+          <div className="mb-12">
+            <p className="mb-3 text-sm font-medium uppercase tracking-[0.35em] text-rose-300">
+              Purchase Access
+            </p>
+
+            <h1 className="mb-4 text-5xl font-black tracking-tight">
+              购买权限
+            </h1>
+
+            <p className="max-w-2xl text-zinc-400">
+              查看用户最终获得的作品解锁权限。订单支付成功后会生成购买权限；用户能否查看付费内容，以这里的记录为准。
+            </p>
+          </div>
+
+          <section className="mb-10 grid gap-4 md:grid-cols-4">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+              <p className="text-3xl font-bold">{activePurchases.length}</p>
+              <p className="mt-2 text-sm text-zinc-500">有效权限</p>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+              <p className="text-3xl font-bold text-rose-200">
+                {uniqueUserCount}
+              </p>
+              <p className="mt-2 text-sm text-zinc-500">付费用户</p>
+            </div>
+
+            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+              <p className="text-3xl font-bold text-yellow-300">
+                {uniquePostCount}
+              </p>
+              <p className="mt-2 text-sm text-zinc-500">被购买作品</p>
+            </div>
+
+            <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/10 p-6">
+              <p className="text-3xl font-bold text-emerald-200">
+                ¥{totalAmount.toFixed(2)}
+              </p>
+              <p className="mt-2 text-sm text-zinc-500">解锁金额</p>
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/40">
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="mb-2 text-sm uppercase tracking-[0.25em] text-rose-300">
+                  Purchases
+                </p>
+
+                <h2 className="text-3xl font-bold">
+                  权限列表
+                </h2>
+              </div>
+
+              <p className="text-sm text-zinc-500">
+                已退款 {refundedCount} 条
+              </p>
+            </div>
+
+            {purchases.length === 0 ? (
+              <div className="rounded-3xl border border-white/10 bg-black/30 p-10 text-center">
+                <p className="text-zinc-400">
+                  目前还没有购买权限记录。
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-3xl border border-white/10">
+                <div className="hidden grid-cols-[1fr_1.6fr_1.8fr_0.8fr_0.9fr_1.2fr] gap-4 bg-white/[0.06] px-5 py-4 text-sm text-zinc-400 lg:grid">
+                  <div>权限 ID</div>
+                  <div>用户</div>
+                  <div>作品</div>
+                  <div>金额</div>
+                  <div>状态</div>
+                  <div>创建时间</div>
                 </div>
 
-                <div className="text-zinc-400 text-sm flex flex-col gap-1">
-                  <p>
-                    购买用户：{purchase.user.name}（{purchase.user.email}）
-                  </p>
+                <div className="divide-y divide-white/10">
+                  {purchases.map((purchase) => (
+                    <article
+                      key={purchase.id}
+                      className="grid gap-4 bg-black/30 px-5 py-5 transition hover:bg-white/[0.04] lg:grid-cols-[1fr_1.6fr_1.8fr_0.8fr_0.9fr_1.2fr]"
+                    >
+                      <div>
+                        <p className="mb-1 text-sm font-medium text-white">
+                          #{purchase.id}
+                        </p>
 
-                  <p>
-                    用户 ID：{purchase.user.id}
-                  </p>
+                        <p className="text-xs text-zinc-600">
+                          用户 {purchase.userId} / 作品 {purchase.postId}
+                        </p>
+                      </div>
 
-                  <p>
-                    作品 ID：{purchase.post.id}
-                  </p>
+                      <div>
+                        <p className="mb-1 text-sm text-zinc-200">
+                          {purchase.user.name || "未命名用户"}
+                        </p>
 
-                  <p>
-                    支付金额：¥{purchase.amountPaid}
-                  </p>
+                        <p className="break-all text-xs text-zinc-500">
+                          {purchase.user.email}
+                        </p>
+                      </div>
 
-                  <p>
-                    购买时间：{purchase.createdAt.toLocaleString()}
-                  </p>
-                </div>
+                      <div>
+                        <Link
+                          href={`/gallery/${purchase.post.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mb-1 block text-sm text-zinc-200 hover:text-rose-200 transition"
+                        >
+                          {purchase.post.title}
+                        </Link>
 
-                <div className="flex gap-3 mt-3">
-                  <Link
-                    href={`/gallery/${purchase.post.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="bg-zinc-800 px-4 py-2 rounded-xl hover:bg-zinc-700 transition"
-                  >
-                    查看作品
-                  </Link>
+                        <p className="text-xs text-zinc-600">
+                          {purchase.post.type === "WORK" ? "作品" : "公告"}
+                          {purchase.post.isPaid ? " / 付费内容" : " / 免费内容"}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="text-sm font-medium text-white">
+                          ¥{Number(purchase.amountPaid).toFixed(2)}
+                        </p>
+                      </div>
+
+                      <div>
+                        <span
+                          className={`inline-flex rounded-full border px-3 py-1 text-xs ${getPurchaseStatusClassName(
+                            purchase.status
+                          )}`}
+                        >
+                          {getPurchaseStatusText(purchase.status)}
+                        </span>
+                      </div>
+
+                      <div className="text-xs leading-6 text-zinc-500">
+                        <p>{formatDateTime(purchase.createdAt)}</p>
+                      </div>
+                    </article>
+                  ))}
                 </div>
               </div>
-            </article>
-          ))}
+            )}
+          </section>
         </div>
-      )}
+      </section>
     </main>
   );
 }
