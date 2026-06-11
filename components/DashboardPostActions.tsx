@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-
+import { useFeedback } from "@/components/FeedbackProvider";
 type DashboardPostActionsProps = {
   postId: number;
 };
@@ -21,11 +21,15 @@ export default function DashboardPostActions({
 }: DashboardPostActionsProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
-
+  const { toast, confirm } = useFeedback();
   async function handleDelete() {
-    const confirmed = window.confirm(
-      "确定要删除这篇内容吗？删除后无法恢复。"
-    );
+    const confirmed = await confirm({
+      title: "删除内容",
+      message: "确定要删除这篇内容吗？删除后无法恢复。",
+      confirmText: "删除",
+      cancelText: "取消",
+      danger: true,
+    });
 
     if (!confirmed) {
       return;
@@ -42,10 +46,10 @@ export default function DashboardPostActions({
     setDeleting(false);
 
     if (!response.ok || !result.success) {
-      alert(result.message || "删除失败");
+      toast(result.message || "删除失败", "error");
       return;
     }
-
+    toast("内容已删除", "success");
     router.refresh();
   }
 

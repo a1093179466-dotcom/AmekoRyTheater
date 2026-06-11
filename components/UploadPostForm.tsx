@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
+import { useFeedback } from "@/components/FeedbackProvider";
 type PostType = "WORK" | "NOTICE";
 type AccessType = "FREE" | "PAID";
 
@@ -12,7 +12,7 @@ export default function UploadPostForm() {
 
   const [type, setType] = useState<PostType>("WORK");
   const [accessType, setAccessType] = useState<AccessType>("FREE");
-
+  const { toast } = useFeedback();
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
@@ -55,39 +55,39 @@ export default function UploadPostForm() {
 
   async function handleSubmit() {
     if (!title.trim()) {
-      alert("标题不能为空");
+      toast("标题不能为空", "error");
       return;
     }
 
     if (!excerpt.trim()) {
-      alert("简介不能为空");
+      toast("简介不能为空", "error");
       return;
     }
 
     if (!content.trim()) {
-      alert("正文不能为空");
+      toast("正文不能为空", "error");
       return;
     }
 
     const priceNumber = Number(price || 0);
 
     if (Number.isNaN(priceNumber)) {
-      alert("价格必须是数字");
+     toast("价格必须是数字", "error");
       return;
     }
 
     if (priceNumber < 0) {
-      alert("价格不能小于 0");
+      toast("价格不能小于0", "error");
       return;
     }
 
     if (type === "NOTICE" && accessType === "PAID") {
-      alert("公告不能设置为付费内容");
+      toast("公告不能设置为付费内容", "error");
       return;
     }
 
     if (type === "WORK" && accessType === "PAID" && priceNumber <= 0) {
-      alert("付费作品价格必须大于 0");
+      toast("付费作品价格必须大于0", "error");
       return;
     }
 
