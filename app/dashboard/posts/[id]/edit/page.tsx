@@ -1,45 +1,38 @@
 import Link from "next/link";
-import DashboardBackLink from "@/components/DashboardBackLink";
+
 import { prisma } from "@/lib/prisma";
-import EditPostForm from "@/components/EditPostForm";
 import { requireAdminPage } from "@/lib/auth";
-type PageProps = {
+import EditPostForm from "@/components/EditPostForm";
+
+type EditPostPageProps = {
   params: Promise<{
     id: string;
   }>;
 };
 
-export const dynamic = "force-dynamic";
-
-export default async function EditPostPage({ params }: PageProps) {
-  // 只有管理员可以编辑帖子
+export default async function EditPostPage({ params }: EditPostPageProps) {
   await requireAdminPage();
 
   const { id } = await params;
-
-  // 后面保持原来的逻辑
-
   const postId = Number(id);
 
-  // 校验 URL 参数，避免 /dashboard/posts/abc/edit 这种无效地址
   if (Number.isNaN(postId)) {
     return (
-      <main className="min-h-screen bg-black text-white p-10">
-        <h1 className="text-4xl font-bold mb-6">
-          帖子 ID 无效
-        </h1>
+      <main className="min-h-screen bg-[#050505] px-6 py-12 text-white">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
+          <p className="mb-6 text-zinc-400">内容 ID 不正确。</p>
 
-        <Link
-          href="/dashboard/posts"
-          className="text-zinc-400 underline"
-        >
-          返回帖子管理
-        </Link>
+          <Link
+            href="/dashboard/posts"
+            className="rounded-full bg-white px-5 py-2 text-sm font-medium text-black hover:bg-rose-100 transition"
+          >
+            返回内容管理
+          </Link>
+        </div>
       </main>
     );
   }
 
-  // 从数据库读取要编辑的帖子
   const post = await prisma.post.findUnique({
     where: {
       id: postId,
@@ -48,50 +41,20 @@ export default async function EditPostPage({ params }: PageProps) {
 
   if (!post) {
     return (
-      <main className="min-h-screen bg-black text-white p-10">
-        <h1 className="text-4xl font-bold mb-6">
-          帖子不存在
-        </h1>
+      <main className="min-h-screen bg-[#050505] px-6 py-12 text-white">
+        <div className="mx-auto max-w-3xl rounded-[2rem] border border-white/10 bg-white/[0.04] p-8">
+          <p className="mb-6 text-zinc-400">没有找到这篇内容。</p>
 
-        <Link
-          href="/dashboard/posts"
-          className="text-zinc-400 underline"
-        >
-          返回帖子管理
-        </Link>
+          <Link
+            href="/dashboard/posts"
+            className="rounded-full bg-white px-5 py-2 text-sm font-medium text-black hover:bg-rose-100 transition"
+          >
+            返回内容管理
+          </Link>
+        </div>
       </main>
     );
   }
 
-  return (
-    <main className="min-h-screen bg-black text-white p-10">
-      <DashboardBackLink
-        href="/dashboard/posts"
-        label="← 返回帖子管理"
-      />
-
-      <h1 className="text-4xl font-bold mb-8">
-        编辑帖子
-      </h1>
-
-      <EditPostForm
-        post={{
-          id: post.id,
-          type: post.type,
-          title: post.title,
-          excerpt: post.excerpt,
-          content: post.content,
-          previewContent: post.previewContent,
-          paidContent: post.paidContent,
-          coverImage: post.coverImage,
-          downloadUrl: post.downloadUrl,
-          downloadCode: post.downloadCode,
-          isPaid: post.isPaid,
-          price: post.price,
-          isPublished: post.isPublished,
-          isPinned: post.isPinned,
-        }}
-      />
-    </main>
-  );
+  return <EditPostForm post={post} />;
 }
