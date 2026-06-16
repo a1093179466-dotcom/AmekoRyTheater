@@ -39,6 +39,7 @@ model User {
   sessions     Session[]
   comments     Comment[]
   purchases    Purchase[]
+  avatarUrl String?
 }
 
 model Session {

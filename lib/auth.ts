@@ -21,23 +21,24 @@ export async function getCurrentUser() {
     return null;
   }
 
-  const session = await prisma.session.findUnique({
-    where: {
-      token: sessionToken,
-    },
+const session = await prisma.session.findUnique({
+  where: {
+    token: sessionToken,
+  },
 
-    // 顺便把这个 Session 对应的用户查出来
-    include: {
-      user: {
-        select: {
-          id: true,
-          email: true,
-          name: true,
-          role: true,
-        },
+  // 顺便把这个 Session 对应的用户查出来
+  include: {
+    user: {
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatarUrl: true,
       },
     },
-  });
+  },
+});
 
   // 数据库里找不到这个 Session，说明 Cookie 无效
   if (!session) {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+import AvatarUpload from "@/components/AvatarUpload";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PayOrderButton from "@/components/PayOrderButton";
@@ -162,7 +162,10 @@ export default async function ProfilePage() {
             <h1 className="mb-4 text-5xl font-black tracking-tight">
               个人中心
             </h1>
-
+            <AvatarUpload
+              avatarUrl={user.avatarUrl}
+              userName={user.name}
+            />
             <p className="max-w-2xl text-zinc-400">
               查看你的账号信息、订单状态、已购买作品和评论记录。
             </p>
