@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { formatDate, formatDateTime } from "@/lib/format";
@@ -66,6 +65,16 @@ export default async function PostDetailPage({ params }: PageProps) {
         orderBy: {
           createdAt: "asc",
         },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              avatarUrl: true,
+            },
+          },
+        },
       },
     },
   });
@@ -127,14 +136,20 @@ export default async function PostDetailPage({ params }: PageProps) {
     currentUser?.role === "ADMIN" ||
     hasPurchased;
 
-  const postComments = post.comments.map((comment) => ({
-    id: comment.id,
-    postId: comment.postId,
-    userId: comment.userId,
-    username: comment.username,
-    content: comment.content,
-    createdAt: formatDateTime(comment.createdAt),
-  }));
+  const postComments = post.comments.map((comment) => {
+    const displayName =
+      comment.user?.name || comment.username || "匿名用户";
+
+    return {
+      id: comment.id,
+      postId: comment.postId,
+      userId: comment.userId,
+      username: displayName,
+      avatarUrl: comment.user?.avatarUrl || null,
+      content: comment.content,
+      createdAt: formatDateTime(comment.createdAt),
+    };
+  });
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
