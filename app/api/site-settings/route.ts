@@ -77,27 +77,56 @@ export async function PATCH(request: Request) {
     update: {
       siteTitle,
       siteSubtitle: toText(body.siteSubtitle),
+
       homeHeroTitle,
       homeHeroSubtitle: toText(body.homeHeroSubtitle),
+
       tickerEnabled,
       tickerText,
+
       aboutText: toText(body.aboutText),
       contactEmail: toText(body.contactEmail),
+
+      // 旧的单个外部链接字段，先保留，避免影响已有代码和数据
       externalLinkText: toText(body.externalLinkText),
       externalLinkUrl: toText(body.externalLinkUrl),
+
+      // 新的平台图标链接
+      youtubeEnabled: Boolean(body.youtubeEnabled),
+      youtubeUrl: toText(body.youtubeUrl),
+
+      xEnabled: Boolean(body.xEnabled),
+      xUrl: toText(body.xUrl),
+
+      pixivEnabled: Boolean(body.pixivEnabled),
+      pixivUrl: toText(body.pixivUrl),
     },
     create: {
       id: 1,
+
       siteTitle,
       siteSubtitle: toText(body.siteSubtitle),
+
       homeHeroTitle,
       homeHeroSubtitle: toText(body.homeHeroSubtitle),
+
       tickerEnabled,
       tickerText,
+
       aboutText: toText(body.aboutText),
       contactEmail: toText(body.contactEmail),
+
       externalLinkText: toText(body.externalLinkText),
       externalLinkUrl: toText(body.externalLinkUrl),
+
+      youtubeEnabled: Boolean(body.youtubeEnabled),
+      youtubeUrl: toText(body.youtubeUrl),
+
+      xEnabled: Boolean(body.xEnabled),
+      xUrl: toText(body.xUrl),
+
+      pixivEnabled: Boolean(body.pixivEnabled),
+      pixivUrl: toText(body.pixivUrl),
     },
   });
 

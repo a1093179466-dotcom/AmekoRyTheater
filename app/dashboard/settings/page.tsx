@@ -64,6 +64,12 @@ export default async function DashboardSettingsPage() {
               contactEmail: setting.contactEmail,
               externalLinkText: setting.externalLinkText,
               externalLinkUrl: setting.externalLinkUrl,
+              youtubeEnabled: setting.youtubeEnabled,
+              youtubeUrl: setting.youtubeUrl,
+              xEnabled: setting.xEnabled,
+              xUrl: setting.xUrl,
+              pixivEnabled: setting.pixivEnabled,
+              pixivUrl: setting.pixivUrl,
             }}
           />
         </div>

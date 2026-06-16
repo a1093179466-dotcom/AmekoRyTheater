@@ -17,6 +17,12 @@ type SiteSettingsFormProps = {
     contactEmail: string;
     externalLinkText: string;
     externalLinkUrl: string;
+    youtubeEnabled: boolean;
+    youtubeUrl: string;
+    xEnabled: boolean;
+    xUrl: string;
+    pixivEnabled: boolean;
+    pixivUrl: string;
   };
 };
 
@@ -39,6 +45,14 @@ export default function SiteSettingsForm({
   const [externalLinkText, setExternalLinkText] = useState(
     setting.externalLinkText
   );
+  const [youtubeEnabled, setYoutubeEnabled] = useState(setting.youtubeEnabled);
+  const [youtubeUrl, setYoutubeUrl] = useState(setting.youtubeUrl);
+
+  const [xEnabled, setXEnabled] = useState(setting.xEnabled);
+  const [xUrl, setXUrl] = useState(setting.xUrl);
+
+  const [pixivEnabled, setPixivEnabled] = useState(setting.pixivEnabled);
+  const [pixivUrl, setPixivUrl] = useState(setting.pixivUrl);
   const [externalLinkUrl, setExternalLinkUrl] = useState(
     setting.externalLinkUrl
   );
@@ -79,6 +93,12 @@ export default function SiteSettingsForm({
         contactEmail,
         externalLinkText,
         externalLinkUrl,
+        youtubeEnabled,
+        youtubeUrl,
+        xEnabled,
+        xUrl,
+        pixivEnabled,
+        pixivUrl,
       }),
     });
 
@@ -252,7 +272,78 @@ export default function SiteSettingsForm({
             </label>
           </div>
         </div>
+        <div className="rounded-3xl border border-white/10 bg-black/30 p-6">
+          <p className="mb-2 text-sm uppercase tracking-[0.25em] text-rose-300">
+            Platforms
+          </p>
 
+          <h2 className="mb-6 text-3xl font-bold">
+            平台图标
+          </h2>
+
+          <p className="mb-6 text-sm leading-6 text-zinc-500">
+            勾选后会在网站底部显示对应平台图标。用户点击图标后会跳转到你填写的链接。
+          </p>
+
+          <div className="flex flex-col gap-5">
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <label className="mb-4 flex items-center justify-between gap-4">
+                <span className="font-medium text-zinc-200">显示 YouTube</span>
+
+                <input
+                  type="checkbox"
+                  checked={youtubeEnabled}
+                  onChange={(e) => setYoutubeEnabled(e.target.checked)}
+                />
+              </label>
+
+              <input
+                className="w-full rounded-2xl bg-black/60 px-4 py-3 text-white outline-none placeholder:text-zinc-600 focus:ring-1 focus:ring-rose-300/60"
+                placeholder="https://www.youtube.com/@yourname"
+                value={youtubeUrl}
+                onChange={(e) => setYoutubeUrl(e.target.value)}
+              />
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <label className="mb-4 flex items-center justify-between gap-4">
+                <span className="font-medium text-zinc-200">显示 X</span>
+
+                <input
+                  type="checkbox"
+                  checked={xEnabled}
+                  onChange={(e) => setXEnabled(e.target.checked)}
+                />
+              </label>
+
+              <input
+                className="w-full rounded-2xl bg-black/60 px-4 py-3 text-white outline-none placeholder:text-zinc-600 focus:ring-1 focus:ring-rose-300/60"
+                placeholder="https://x.com/yourname"
+                value={xUrl}
+                onChange={(e) => setXUrl(e.target.value)}
+              />
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <label className="mb-4 flex items-center justify-between gap-4">
+                <span className="font-medium text-zinc-200">显示 Pixiv</span>
+
+                <input
+                  type="checkbox"
+                  checked={pixivEnabled}
+                  onChange={(e) => setPixivEnabled(e.target.checked)}
+                />
+              </label>
+
+              <input
+                className="w-full rounded-2xl bg-black/60 px-4 py-3 text-white outline-none placeholder:text-zinc-600 focus:ring-1 focus:ring-rose-300/60"
+                placeholder="https://www.pixiv.net/users/123456"
+                value={pixivUrl}
+                onChange={(e) => setPixivUrl(e.target.value)}
+              />
+            </div>
+          </div>
+        </div>
         <div className="flex justify-end">
           <button
             type="button"
