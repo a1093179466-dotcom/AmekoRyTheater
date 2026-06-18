@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { createAdminNotifications } from "@/lib/notifications";
 
 type RouteContext = {
   params: Promise<{
@@ -178,6 +179,14 @@ export async function POST(
       });
 
       return updatedOrder;
+    });
+
+    await createAdminNotifications({
+      actorUserId: currentUser.id,
+      type: "POST_PURCHASED",
+      title: "作品被购买了",
+      content: `用户 ${currentUser.name} 购买了《${order.post.title}》`,
+      linkUrl: `/gallery/${order.postId}`,
     });
 
     return Response.json({

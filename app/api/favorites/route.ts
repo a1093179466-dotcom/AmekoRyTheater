@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { createAdminNotifications } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -16,6 +17,15 @@ async function readPostId(request: Request) {
   } catch {
     return null;
   }
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2002"
+  );
 }
 
 export async function POST(request: Request) {
@@ -55,6 +65,7 @@ export async function POST(request: Request) {
       select: {
         id: true,
         type: true,
+        title: true,
       },
     });
 
@@ -82,19 +93,31 @@ export async function POST(request: Request) {
       );
     }
 
-    await prisma.favorite.upsert({
-      where: {
-        userId_postId: {
+    let createdFavorite = false;
+
+    try {
+      await prisma.favorite.create({
+        data: {
           userId: currentUser.id,
           postId: post.id,
         },
-      },
-      update: {},
-      create: {
-        userId: currentUser.id,
-        postId: post.id,
-      },
-    });
+      });
+      createdFavorite = true;
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) {
+        throw error;
+      }
+    }
+
+    if (createdFavorite) {
+      await createAdminNotifications({
+        actorUserId: currentUser.id,
+        type: "POST_FAVORITED",
+        title: "作品被收藏了",
+        content: `用户 ${currentUser.name} 收藏了《${post.title}》`,
+        linkUrl: `/gallery/${post.id}`,
+      });
+    }
 
     const favoriteCount = await prisma.favorite.count({
       where: {

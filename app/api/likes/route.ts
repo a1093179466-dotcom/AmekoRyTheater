@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { createAdminNotifications } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -24,6 +25,15 @@ async function getLikeCount(postId: number) {
       postId,
     },
   });
+}
+
+function isUniqueConstraintError(error: unknown) {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === "P2002"
+  );
 }
 
 export async function POST(request: Request) {
@@ -63,6 +73,7 @@ export async function POST(request: Request) {
       select: {
         id: true,
         type: true,
+        title: true,
       },
     });
 
@@ -90,19 +101,31 @@ export async function POST(request: Request) {
       );
     }
 
-    await prisma.like.upsert({
-      where: {
-        userId_postId: {
+    let createdLike = false;
+
+    try {
+      await prisma.like.create({
+        data: {
           userId: currentUser.id,
           postId: post.id,
         },
-      },
-      update: {},
-      create: {
-        userId: currentUser.id,
-        postId: post.id,
-      },
-    });
+      });
+      createdLike = true;
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) {
+        throw error;
+      }
+    }
+
+    if (createdLike) {
+      await createAdminNotifications({
+        actorUserId: currentUser.id,
+        type: "POST_LIKED",
+        title: "作品收到了新的点赞",
+        content: `用户 ${currentUser.name} 点赞了《${post.title}》`,
+        linkUrl: `/gallery/${post.id}`,
+      });
+    }
 
     const likeCount = await getLikeCount(post.id);
 

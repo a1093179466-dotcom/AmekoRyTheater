@@ -653,3 +653,78 @@ After gallery image deletion:
 * 暂无
 
 推荐下一步：互动系统收尾检查，或站点设置第二阶段
+
+---
+
+## Update Record: Navbar User Menu and Admin Interaction Notifications
+
+本次完成：
+* 导航栏登录态从文字按钮调整为用户头像菜单
+* 头像菜单显示当前用户名 / 邮箱、个人中心、我的通知、退出登录
+* 导航栏头像旁显示未读通知数字，超过 99 显示 99+
+* 通知页标记已读 / 全部已读成功后会 router.refresh，刷新导航栏未读数
+* 管理员会收到作品点赞、收藏、模拟支付成功通知
+* 点赞 / 收藏重复 POST 不重复创建管理员通知
+* 支付通知只在订单从未支付进入支付成功流程时创建
+
+修改过的文件：
+* components/Navbar.tsx
+* components/UserNavMenu.tsx
+* components/NotificationList.tsx
+* app/profile/page.tsx
+* app/api/likes/route.ts
+* app/api/favorites/route.ts
+* app/api/orders/[id]/pay/route.ts
+* lib/notifications.ts
+* CODEX_CONTEXT.md
+
+新增或修改的组件：
+* 新增 components/UserNavMenu.tsx
+  * 使用 UserAvatar 显示当前用户头像或首字母占位
+  * hover / focus 时显示暗色剧场风下拉菜单
+  * 退出登录调用 /api/auth/logout，并使用 FeedbackProvider toast
+* 修改 components/Navbar.tsx
+  * 服务端查询当前用户未读通知数
+  * 未登录时继续显示 AuthNavButtons，保留登录 / 注册拦截弹窗入口
+* 修改 components/NotificationList.tsx
+  * 标记已读 / 全部已读成功后刷新服务端数据
+
+新增或修改的 API / 通知逻辑：
+* 新增 lib/notifications.ts
+  * createAdminNotifications 查询所有 ADMIN 用户
+  * 自动过滤操作人自己
+  * 通知创建失败只 console.error，不影响主流程
+* 修改 POST /api/likes
+  * 新点赞成功时创建 POST_LIKED 管理员通知
+  * 重复点赞保持幂等且不重复通知
+* 修改 POST /api/favorites
+  * 新收藏成功时创建 POST_FAVORITED 管理员通知
+  * 重复收藏保持幂等且不重复通知
+* 修改 POST /api/orders/[id]/pay
+  * 模拟支付成功并创建购买权限后创建 POST_PURCHASED 管理员通知
+  * 已支付订单重复支付返回成功但不重复通知
+
+测试结果：
+* npx prisma generate 成功
+* npx tsc --noEmit 通过
+* npm run lint -- components/Navbar.tsx components/UserNavMenu.tsx components/NotificationList.tsx app/api/likes/route.ts app/api/favorites/route.ts app/api/orders/[id]/pay/route.ts lib/notifications.ts app/profile/page.tsx 通过
+* npm run dev 成功启动，/gallery 返回 200
+* 未登录首页响应包含登录 / 注册入口
+* 登录后首页响应包含当前用户信息、/profile、/profile/notifications 和未读通知数字
+* POST /api/auth/logout 成功，Session 被删除
+* 普通用户不能标记别人的通知，返回 403
+* 单条标记已读成功，未读数归零
+* 全部标记已读成功，未读数归零
+* 用户点赞作品后，所有非本人 ADMIN 用户收到 POST_LIKED 通知
+* 用户重复点赞同一作品，不重复通知管理员
+* 用户收藏作品后，所有非本人 ADMIN 用户收到 POST_FAVORITED 通知
+* 用户重复收藏同一作品，不重复通知管理员
+* 用户模拟支付成功后，所有非本人 ADMIN 用户收到 POST_PURCHASED 通知
+* 已支付订单重复调用支付接口，不重复通知管理员
+* 评论回复通知回归通过
+* 测试创建的临时用户、会话、作品、订单、购买权限、评论、互动记录和通知已清理
+
+已知问题：
+* 暂无
+
+推荐下一步：互动系统收尾检查

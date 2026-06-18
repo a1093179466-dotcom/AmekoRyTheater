@@ -1,7 +1,8 @@
 import Link from "next/link";
 import AuthNavButtons from "@/components/AuthNavButtons";
+import UserNavMenu from "@/components/UserNavMenu";
 import { getCurrentUser } from "@/lib/auth";
-import LogoutButton from "@/components/LogoutButton";
+import { prisma } from "@/lib/prisma";
 
 /**
  * 网站顶部导航栏。
@@ -14,6 +15,14 @@ import LogoutButton from "@/components/LogoutButton";
  */
 export default async function Navbar() {
   const user = await getCurrentUser();
+  const unreadNotificationCount = user
+    ? await prisma.notification.count({
+        where: {
+          userId: user.id,
+          isRead: false,
+        },
+      })
+    : 0;
 
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-black/70 backdrop-blur-xl">
@@ -63,18 +72,6 @@ export default async function Navbar() {
 
           {user ? (
             <>
-              <span className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1 text-zinc-300 md:inline">
-                {user.name}
-                {user.role === "ADMIN" ? " · 管理员" : ""}
-              </span>
-
-              <Link
-                href="/profile"
-                className="text-zinc-300 hover:text-white transition"
-              >
-                个人中心
-              </Link>
-
               {user.role === "ADMIN" && (
                 <Link
                   href="/dashboard"
@@ -84,7 +81,14 @@ export default async function Navbar() {
                 </Link>
               )}
 
-              <LogoutButton />
+              <UserNavMenu
+                user={{
+                  name: user.name,
+                  email: user.email,
+                  avatarUrl: user.avatarUrl,
+                }}
+                unreadNotificationCount={unreadNotificationCount}
+              />
             </>
           ) : (
             <>

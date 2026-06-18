@@ -288,7 +288,7 @@ export default async function ProfilePage() {
                     </p>
 
                     <p className="mt-1 text-sm text-zinc-400">
-                      查看评论回复通知
+                      查看站内通知
                     </p>
                   </div>
 

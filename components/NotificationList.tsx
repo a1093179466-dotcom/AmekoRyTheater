@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import { useFeedback } from "@/components/FeedbackProvider";
 
@@ -23,6 +24,7 @@ export default function NotificationList({
   notifications,
 }: NotificationListProps) {
   const { toast } = useFeedback();
+  const router = useRouter();
   const [items, setItems] = useState(notifications);
   const [loadingId, setLoadingId] = useState<number | null>(null);
   const [markingAll, setMarkingAll] = useState(false);
@@ -50,6 +52,7 @@ export default function NotificationList({
         )
       );
       toast("通知已标记为已读", "success");
+      router.refresh();
     } catch {
       toast("标记已读失败，请稍后再试", "error");
     } finally {
@@ -84,6 +87,7 @@ export default function NotificationList({
         }))
       );
       toast(`已标记 ${result.updatedCount ?? unreadCount} 条通知`, "success");
+      router.refresh();
     } catch {
       toast("全部标记已读失败，请稍后再试", "error");
     } finally {
@@ -99,7 +103,7 @@ export default function NotificationList({
         </p>
 
         <p className="text-zinc-400">
-          当有人回复你的评论时，通知会出现在这里。
+          当有人回复你的评论或作品产生互动时，通知会出现在这里。
         </p>
       </section>
     );
