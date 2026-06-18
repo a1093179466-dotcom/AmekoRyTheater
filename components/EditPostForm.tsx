@@ -31,6 +31,30 @@ type EditPostFormProps = {
   };
 };
 
+function CoverImagePreview({ file }: { file: File }) {
+  const [previewUrl] = useState(() => URL.createObjectURL(file));
+
+  useEffect(() => {
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  return (
+    <div>
+      <p className="mb-3 text-sm text-zinc-400">新封面预览</p>
+
+      <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/30">
+        <img
+          src={previewUrl}
+          alt="新封面预览"
+          className="max-h-[360px] w-full object-cover"
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function EditPostForm({ post }: EditPostFormProps) {
   const router = useRouter();
   const { toast } = useFeedback();
@@ -55,23 +79,8 @@ export default function EditPostForm({ post }: EditPostFormProps) {
   const [isPinned, setIsPinned] = useState(post.isPinned);
 
   const [image, setImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState("");
 
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!image) {
-      setPreviewUrl("");
-      return;
-    }
-
-    const url = URL.createObjectURL(image);
-    setPreviewUrl(url);
-
-    return () => {
-      URL.revokeObjectURL(url);
-    };
-  }, [image]);
 
   function resetPaidFields() {
     setAccessType("FREE");
@@ -155,10 +164,11 @@ export default function EditPostForm({ post }: EditPostFormProps) {
 
     if (image) {
       formData.append("image", image);
-      galleryImages.forEach((file) => {
-        formData.append("galleryImages", file);
-      });
     }
+
+    galleryImages.forEach((file) => {
+      formData.append("galleryImages", file);
+    });
 
     const response = await fetch(`/api/posts/${post.id}`, {
       method: "PATCH",
@@ -360,7 +370,7 @@ export default function EditPostForm({ post }: EditPostFormProps) {
                 </div>
 
                 <div className="flex flex-col gap-5">
-                  {post.coverImage && !previewUrl && (
+                  {post.coverImage && !image && (
                     <div>
                       <p className="mb-3 text-sm text-zinc-400">当前封面</p>
 
@@ -385,18 +395,11 @@ export default function EditPostForm({ post }: EditPostFormProps) {
                     className="block w-full text-sm text-zinc-400 file:mr-4 file:rounded-full file:border-0 file:bg-white file:px-5 file:py-2 file:text-sm file:font-medium file:text-black hover:file:bg-rose-100"
                   />
 
-                  {previewUrl ? (
-                    <div>
-                      <p className="mb-3 text-sm text-zinc-400">新封面预览</p>
-
-                      <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/30">
-                        <img
-                          src={previewUrl}
-                          alt="新封面预览"
-                          className="max-h-[360px] w-full object-cover"
-                        />
-                      </div>
-                    </div>
+                  {image ? (
+                    <CoverImagePreview
+                      key={`${image.name}-${image.size}-${image.lastModified}`}
+                      file={image}
+                    />
                   ) : !post.coverImage ? (
                     <div className="rounded-3xl border border-dashed border-white/10 bg-black/30 p-10 text-center text-zinc-500">
                       当前没有封面，选择图片后会在这里显示预览

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useFeedback } from "@/components/FeedbackProvider";
 
 type ExistingImage = {
   id: number;
@@ -13,23 +14,59 @@ type GalleryImagePickerProps = {
   existingImages?: ExistingImage[];
 };
 
+type NewImagePreviewProps = {
+  file: File;
+  index: number;
+  onRemove: (index: number) => void;
+};
+
+function NewImagePreview({
+  file,
+  index,
+  onRemove,
+}: NewImagePreviewProps) {
+  const [previewUrl] = useState(() => URL.createObjectURL(file));
+
+  useEffect(() => {
+    return () => {
+      URL.revokeObjectURL(previewUrl);
+    };
+  }, [previewUrl]);
+
+  return (
+    <div className="overflow-hidden rounded-3xl border border-white/10 bg-black/30">
+      <img
+        src={previewUrl}
+        alt={`新作品图 ${index + 1}`}
+        className="h-40 w-full object-cover"
+      />
+
+      <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
+        <span className="truncate text-xs text-zinc-500">{file.name}</span>
+
+        <button
+          type="button"
+          onClick={() => onRemove(index)}
+          className="shrink-0 text-xs text-red-300 hover:text-red-200 transition"
+        >
+          移除
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function GalleryImagePicker({
   files,
   onChange,
-  existingImages = [],
+  existingImages,
 }: GalleryImagePickerProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [previewUrls, setPreviewUrls] = useState<string[]>([]);
-
-  useEffect(() => {
-    const urls = files.map((file) => URL.createObjectURL(file));
-
-    setPreviewUrls(urls);
-
-    return () => {
-      urls.forEach((url) => URL.revokeObjectURL(url));
-    };
-  }, [files]);
+  const { toast, confirm } = useFeedback();
+  const [existingImageItems, setExistingImageItems] = useState<ExistingImage[]>(
+    () => existingImages ?? []
+  );
+  const [deletingImageId, setDeletingImageId] = useState<number | null>(null);
 
   function handleSelectFiles(selectedFiles: FileList | null) {
     if (!selectedFiles) {
@@ -51,14 +88,48 @@ export default function GalleryImagePicker({
     onChange(files.filter((_, currentIndex) => currentIndex !== index));
   }
 
+  async function handleDeleteExistingImage(image: ExistingImage) {
+    const confirmed = await confirm({
+      title: "删除作品图",
+      message: "确定要删除这张旧作品图吗？删除后无法恢复。",
+      confirmText: "删除",
+      cancelText: "取消",
+      danger: true,
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    setDeletingImageId(image.id);
+
+    const response = await fetch(`/api/post-images/${image.id}`, {
+      method: "DELETE",
+    });
+
+    const result = await response.json();
+
+    setDeletingImageId(null);
+
+    if (!response.ok || !result.success) {
+      toast(result.message || "删除作品图失败", "error");
+      return;
+    }
+
+    setExistingImageItems((current) =>
+      current.filter((item) => item.id !== image.id)
+    );
+    toast(result.message || "作品图已删除", "success");
+  }
+
   return (
     <div className="flex flex-col gap-5">
-      {existingImages.length > 0 && (
+      {existingImageItems.length > 0 && (
         <div>
           <p className="mb-3 text-sm text-zinc-400">已有作品图</p>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {existingImages.map((image) => (
+            {existingImageItems.map((image) => (
               <div
                 key={image.id}
                 className="overflow-hidden rounded-3xl border border-white/10 bg-black/30"
@@ -68,12 +139,27 @@ export default function GalleryImagePicker({
                   alt="已有作品图"
                   className="h-40 w-full object-cover"
                 />
+
+                <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
+                  <span className="truncate text-xs text-zinc-500">
+                    已保存
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteExistingImage(image)}
+                    disabled={deletingImageId === image.id}
+                    className="shrink-0 text-xs text-red-300 hover:text-red-200 transition disabled:cursor-not-allowed disabled:text-zinc-600"
+                  >
+                    {deletingImageId === image.id ? "删除中..." : "删除"}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
 
           <p className="mt-3 text-xs text-zinc-600">
-            当前版本先支持追加新图，删除旧图下一轮再做。
+            删除只会移除这张作品图，不会影响封面或新选择的图片。
           </p>
         </div>
       )}
@@ -113,36 +199,18 @@ export default function GalleryImagePicker({
         </p>
       </div>
 
-      {previewUrls.length > 0 ? (
+      {files.length > 0 ? (
         <div>
           <p className="mb-3 text-sm text-zinc-400">新选择预览</p>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {previewUrls.map((url, index) => (
-              <div
-                key={url}
-                className="overflow-hidden rounded-3xl border border-white/10 bg-black/30"
-              >
-                <img
-                  src={url}
-                  alt={`新作品图 ${index + 1}`}
-                  className="h-40 w-full object-cover"
-                />
-
-                <div className="flex items-center justify-between gap-3 border-t border-white/10 px-4 py-3">
-                  <span className="truncate text-xs text-zinc-500">
-                    {files[index]?.name}
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveNewImage(index)}
-                    className="shrink-0 text-xs text-red-300 hover:text-red-200 transition"
-                  >
-                    移除
-                  </button>
-                </div>
-              </div>
+            {files.map((file, index) => (
+              <NewImagePreview
+                key={`${file.name}-${file.size}-${file.lastModified}-${index}`}
+                file={file}
+                index={index}
+                onRemove={handleRemoveNewImage}
+              />
             ))}
           </div>
         </div>
