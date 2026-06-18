@@ -71,6 +71,19 @@ Completed:
 * Multi-image upload foundation
 * Multi-image picker on create/edit forms
 * Post detail image gallery / carousel
+* Delete existing gallery images from edit page
+* Comment replies
+* Post likes
+* Post favorites
+* Profile “my favorites” page
+* Notification center
+* Comment reply notifications
+* Admin notifications for comments, likes, favorites, and purchases
+* Navbar user avatar menu
+* Navbar unread notification badge
+* Click notification to mark read and navigate
+* Card-level like / favorite controls
+* About page powered by site settings
 
 ## Important Existing Files
 
@@ -106,6 +119,17 @@ Comments:
 * components/CommentSection.tsx
 * app/api/comments/route.ts
 * app/api/comments/[id]/route.ts
+
+Interactions:
+
+* components/LikeButton.tsx
+* components/FavoriteButton.tsx
+* app/api/likes/route.ts
+* app/api/favorites/route.ts
+* app/profile/favorites/page.tsx
+* app/profile/notifications/page.tsx
+* components/NotificationList.tsx
+* lib/notifications.ts
 
 Orders and purchases:
 
@@ -153,6 +177,9 @@ Important Prisma models include:
 * Order
 * SiteSetting
 * PostImage
+* Favorite
+* Like
+* Notification
 
 Recent additions:
 
@@ -160,6 +187,10 @@ Recent additions:
 * SiteSetting fields for ticker and platform links
 * Post.images relation
 * PostImage model
+* Comment.parentId self relation for first-level replies
+* Favorite model for post collections
+* Like model for post likes
+* Notification model for in-site notifications
 
 PostImage:
 
@@ -225,72 +256,55 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-Post detail image gallery / carousel.
+Interaction system cleanup.
 
 Implemented:
 
-* PostImage model
-* galleryImages upload in post create/edit APIs
-* GalleryImagePicker on upload/edit pages
-* PostImageGallery on post detail page
-* Mouse wheel switching and thumbnail switching
+* Navbar avatar menu and unread notification badge
+* Notification list with click-to-read navigation and read-all
+* Comment replies and comment delete permissions
+* COMMENT_REPLY notifications for replied users
+* POST_COMMENTED / POST_LIKED / POST_FAVORITED / POST_PURCHASED admin notifications
+* Post like and favorite APIs and compact icon buttons
+* Card-level like / favorite controls on home, gallery, and profile favorites
+* Profile favorites page
+* About page reading SiteSetting about/contact/external link fields
 
 ## Recommended Next Task
 
 Next task:
-Allow admin to delete existing gallery images from the edit page.
+Site settings phase 2, or payment system preflight cleanup.
 
-Expected implementation:
+Suggested site settings phase 2:
 
-1. Add API route:
-   app/api/post-images/[id]/route.ts
+1. Homepage background image
+2. Hero/banner image
+3. Favicon manual replacement or upload flow
+4. Optional visual preview for configured assets
 
-2. DELETE behavior:
+Suggested payment preflight cleanup:
 
-   * Require admin
-   * Find PostImage by id
-   * Delete database record
-   * Delete physical file from public/uploads/post-images if it starts with /uploads/
-   * Return JSON success response
-
-3. Update GalleryImagePicker:
-
-   * Existing images should show a delete button
-   * Deleting should call DELETE /api/post-images/[id]
-   * Use FeedbackProvider toast / confirm
-   * After success, remove image from local state or call router.refresh
-
-4. Keep support for appending new images unchanged.
-
-5. Test:
-
-   * Create post with multiple gallery images
-   * Edit post
-   * Delete one old gallery image
-   * Confirm it disappears
-   * Refresh page and confirm it stays deleted
-   * Confirm detail gallery updates
-   * Confirm deleting a post still deletes remaining gallery image files
+1. Review simulated payment boundaries
+2. Prepare EPAY callback route shape
+3. Confirm order status transitions and idempotency
+4. Keep Purchase creation behind verified payment success
 
 ## Later Roadmap
 
-After gallery image deletion:
+After interaction cleanup:
 
-1. Works likes and favorites
-2. Profile “my favorites”
-3. Comment replies
-4. Notifications
-5. Site settings phase 2:
+1. Site settings phase 2:
 
    * homepage background image
    * hero/banner image
    * favicon upload or manual favicon replacement
-6. Email system:
+2. Payment system preflight and real payment integration prep
+3. Email system:
 
    * email verification
    * password reset
    * email notification preferences
-7. Real payment integration:
+4. Real payment integration:
 
    * EPAY order creation
    * notify_url callback
@@ -298,7 +312,7 @@ After gallery image deletion:
    * providerTradeNo
    * paymentType
    * mark Order as PAID only after verified backend callback
-8. Deployment:
+5. Deployment:
 
    * production database
    * HTTPS
@@ -728,6 +742,67 @@ After gallery image deletion:
 * 暂无
 
 推荐下一步：互动系统收尾检查
+
+---
+
+## Update Record: Interaction System Cleanup
+
+本次完成：互动系统收尾检查
+
+检查过的功能：
+* 导航栏未登录 / 已登录状态、头像菜单、通知入口和未读数字
+* 通知中心、单条已读、全部已读、通知权限校验
+* COMMENT_REPLY / POST_COMMENTED / POST_LIKED / POST_FAVORITED / POST_PURCHASED 通知
+* 作品详情页、首页卡片、作品列表卡片、我的收藏卡片的点赞 / 收藏入口
+* 未登录点赞 / 收藏返回友好错误，不会 500
+* NOTICE 公告不显示点赞 / 收藏入口
+* 我的收藏新增 / 取消后的列表表现
+* 一级评论、评论回复、评论 / 回复删除权限、删除一级评论级联清理回复
+* /about 页面读取 SiteSetting 中的 aboutText / contactEmail / external link
+* ROADMAP.md 与 CODEX_CONTEXT.md 顶部状态同步
+* 全局文案扫描：alert/window.confirm、买断、TODO / 开发痕迹
+
+修复过的问题：
+* 个人中心侧边头像改为复用 UserAvatar，上传头像后显示更一致
+* FavoriteButton 增加 try/catch/finally，网络异常时不会卡在 loading
+* 关于页空状态文案去掉管理后台说明，避免普通访客看到管理提示
+* 我的通知页面说明更新为评论回复、作品互动和购买等通知
+* 旧 CancelOrderButton / DeletePostButton / LogoutButton / UploadPostForm / 登录页 / 注册页中的 alert/window.confirm 已替换为 FeedbackProvider toast / confirm
+* UploadPostForm 封面预览 URL 改为 useMemo 生成、effect 只负责释放，修复 React hooks lint 错误
+* 后台内容管理文案从“删除测试内容”改为“删除内容”
+* PostCard 默认封面注释从“测试图”改为“默认图”
+
+修改过的文件：
+* CODEX_CONTEXT.md
+* ROADMAP.md
+* app/about/page.tsx
+* app/dashboard/posts/page.tsx
+* app/login/page.tsx
+* app/profile/notifications/page.tsx
+* app/profile/page.tsx
+* app/register/page.tsx
+* components/CancelOrderButton.tsx
+* components/DeletePostButton.tsx
+* components/FavoriteButton.tsx
+* components/LogoutButton.tsx
+* components/PostCard.tsx
+* components/UploadPostForm.tsx
+
+测试结果：
+* npx prisma generate 成功
+* npx tsc --noEmit 通过
+* npm run build 通过
+* 相关文件 npm run lint 通过；仅 UploadPostForm 本地预览图使用 img 有性能 warning，无错误
+* 生产服务 HTTP 回归通过：未登录 / 登录导航、通知已读权限、全部已读、点赞 / 收藏、NOTICE 禁止互动、我的收藏新增 / 移除、评论回复通知、一级评论管理员通知、评论删除权限、删除一级评论级联清理回复、模拟支付管理员通知、关于页站点设置展示
+* 全局扫描 app/components/lib/prisma 未发现 alert/window.confirm
+* 全局扫描 app/components/lib/prisma 未发现用户可见“买断”文案
+* 开发痕迹扫描仅剩后台订单页“内部 ID”，属于后台排查信息，按项目规则保留
+
+已知问题：
+* 隐藏后台启动 dev server 在当前环境偶发不稳定；本次使用 production start HTTP 回归、TypeScript、lint 和 build 覆盖
+* UploadPostForm 的本地封面预览仍使用 img，lint 给出性能 warning；这是本地 blob 预览，不影响构建
+
+推荐下一步：站点设置第二阶段
 
 ---
 

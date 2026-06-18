@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useFeedback } from "@/components/FeedbackProvider";
 
 type DeletePostButtonProps = {
   postId: number;
@@ -13,13 +14,18 @@ export default function DeletePostButton({
   title,
 }: DeletePostButtonProps) {
   const router = useRouter();
+  const { toast, confirm: showConfirm } = useFeedback();
 
   const [loading, setLoading] = useState(false);
 
   async function handleDelete() {
-    const confirmed = window.confirm(
-      `确定要删除《${title}》吗？这个操作不能撤销。`
-    );
+    const confirmed = await showConfirm({
+      title: "删除内容",
+      message: `确定要删除《${title}》吗？这个操作不能撤销。`,
+      confirmText: "删除",
+      cancelText: "取消",
+      danger: true,
+    });
 
     if (!confirmed) {
       return;
@@ -36,16 +42,16 @@ export default function DeletePostButton({
     setLoading(false);
 
     if (!response.ok) {
-      alert(result.message || "删除失败");
+      toast(result.message || "删除失败", "error");
       return;
     }
 
     if (!result.success) {
-      alert(result.message || "删除失败");
+      toast(result.message || "删除失败", "error");
       return;
     }
 
-    alert("删除成功");
+    toast("删除成功", "success");
 
     router.refresh();
   }

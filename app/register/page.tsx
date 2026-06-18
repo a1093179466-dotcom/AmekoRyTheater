@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import AuthPageShell from "@/components/AuthPageShell";
+import { useFeedback } from "@/components/FeedbackProvider";
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { toast } = useFeedback();
 
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
@@ -20,22 +22,22 @@ export default function RegisterPage() {
     // 前端基础校验，提升用户体验。
     // 后端 API 仍然会再次校验，不能只依赖前端。
     if (!email.trim()) {
-      alert("邮箱不能为空");
+      toast("邮箱不能为空", "error");
       return;
     }
 
     if (!name.trim()) {
-      alert("昵称不能为空");
+      toast("昵称不能为空", "error");
       return;
     }
 
     if (password.length < 6) {
-      alert("密码至少需要 6 位");
+      toast("密码至少需要 6 位", "error");
       return;
     }
 
     if (password !== confirmPassword) {
-      alert("两次输入的密码不一致");
+      toast("两次输入的密码不一致", "error");
       return;
     }
 
@@ -59,16 +61,16 @@ export default function RegisterPage() {
     setLoading(false);
 
     if (!response.ok) {
-      alert(result.message || "注册失败");
+      toast(result.message || "注册失败", "error");
       return;
     }
 
     if (!result.success) {
-      alert(result.message || "注册失败");
+      toast(result.message || "注册失败", "error");
       return;
     }
 
-    alert("注册成功，请登录账号");
+    toast("注册成功，请登录账号", "success");
 
     setEmail("");
     setName("");

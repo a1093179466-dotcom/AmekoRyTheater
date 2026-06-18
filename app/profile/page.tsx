@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PayOrderButton from "@/components/PayOrderButton";
 import CancelOrderButton from "@/components/CancelOrderButton";
+import UserAvatar from "@/components/UserAvatar";
 
 import { prisma } from "@/lib/prisma";
 import { requireUserPage } from "@/lib/auth";
@@ -181,10 +182,12 @@ export default async function ProfilePage() {
           <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
             <aside className="h-fit rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/40 lg:sticky lg:top-24">
               <div className="mb-6 flex items-center gap-4">
-                <div className="h-16 w-16 rounded-full bg-gradient-to-br from-rose-300 via-fuchsia-400 to-amber-200 p-[1px]">
-                  <div className="flex h-full w-full items-center justify-center rounded-full bg-black text-2xl font-bold">
-                    {user.name.slice(0, 1).toUpperCase()}
-                  </div>
+                <div className="rounded-full bg-gradient-to-br from-rose-300 via-fuchsia-400 to-amber-200 p-[1px]">
+                  <UserAvatar
+                    avatarUrl={user.avatarUrl}
+                    name={user.name}
+                    size="md"
+                  />
                 </div>
 
                 <div>

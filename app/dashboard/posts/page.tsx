@@ -83,7 +83,7 @@ export default async function DashboardPostsPage() {
             </h1>
 
             <p className="max-w-2xl text-zinc-400">
-              管理所有作品、公告和草稿内容。这里可以查看状态、进入编辑页面，或删除测试内容。
+              管理所有作品、公告和草稿内容。这里可以查看状态、进入编辑页面，或删除内容。
             </p>
           </div>
 

@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 import AuthPageShell from "@/components/AuthPageShell";
+import { useFeedback } from "@/components/FeedbackProvider";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { toast } = useFeedback();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,12 +19,12 @@ export default function LoginPage() {
   async function handleLogin() {
     // 前端基础校验，避免空数据直接发给后端
     if (!email.trim()) {
-      alert("邮箱不能为空");
+      toast("邮箱不能为空", "error");
       return;
     }
 
     if (!password) {
-      alert("密码不能为空");
+      toast("密码不能为空", "error");
       return;
     }
 
@@ -45,12 +47,12 @@ export default function LoginPage() {
     setLoading(false);
 
     if (!response.ok) {
-      alert(result.message || "登录失败");
+      toast(result.message || "登录失败", "error");
       return;
     }
 
     if (!result.success) {
-      alert(result.message || "登录失败");
+      toast(result.message || "登录失败", "error");
       return;
     }
 

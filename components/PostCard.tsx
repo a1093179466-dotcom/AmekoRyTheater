@@ -22,7 +22,7 @@ type PostCardProps = {
   isLoggedIn?: boolean;
 
   // 封面图路径。
-  // 旧调用如果暂时没传，就用测试图兜底，避免页面报错。
+  // 旧调用如果暂时没传，就用默认图兜底，避免页面报错。
   coverImage?: string;
 };
 

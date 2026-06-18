@@ -46,7 +46,7 @@ export default async function ProfileNotificationsPage() {
               </h1>
 
               <p className="max-w-2xl text-zinc-400">
-                这里会显示评论回复等站内通知。
+                这里会显示评论回复、作品互动和购买等站内通知。
               </p>
             </div>
 

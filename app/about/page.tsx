@@ -62,7 +62,7 @@ export default async function AboutPage() {
                 </p>
 
                 <p className="text-zinc-400">
-                  管理员可以在后台站点设置中填写这里的内容。
+                  这里会陆续补充创作者与站点说明。
                 </p>
               </div>
             )}

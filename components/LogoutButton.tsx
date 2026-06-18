@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useFeedback } from "@/components/FeedbackProvider";
 
 /**
  * 退出登录按钮。
@@ -10,6 +11,7 @@ import { useRouter } from "next/navigation";
  */
 export default function LogoutButton() {
   const router = useRouter();
+  const { toast } = useFeedback();
 
   const [loading, setLoading] = useState(false);
 
@@ -25,9 +27,11 @@ export default function LogoutButton() {
     setLoading(false);
 
     if (!response.ok || !result.success) {
-      alert(result.message || "退出登录失败");
+      toast(result.message || "退出登录失败", "error");
       return;
     }
+
+    toast("已退出登录", "success");
 
     // 退出成功后刷新页面，让 Navbar 重新读取登录状态
     router.refresh();

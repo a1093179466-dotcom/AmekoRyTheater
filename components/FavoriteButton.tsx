@@ -32,35 +32,39 @@ export default function FavoriteButton({
 
     setLoading(true);
 
-    const response = await fetch("/api/favorites", {
-      method: favorited ? "DELETE" : "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        postId,
-      }),
-    });
+    try {
+      const response = await fetch("/api/favorites", {
+        method: favorited ? "DELETE" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          postId,
+        }),
+      });
 
-    const result = await response.json();
+      const result = await response.json();
 
-    setLoading(false);
+      if (!response.ok || !result.success) {
+        toast(result.message || "收藏操作失败", "error");
+        return;
+      }
 
-    if (!response.ok || !result.success) {
-      toast(result.message || "收藏操作失败", "error");
-      return;
+      const nextFavorited = Boolean(result.favorited);
+      const nextFavoriteCount =
+        typeof result.favoriteCount === "number"
+          ? result.favoriteCount
+          : favoriteCount;
+
+      setFavorited(nextFavorited);
+      setFavoriteCount(nextFavoriteCount);
+      toast(result.message || (nextFavorited ? "作品已收藏" : "已取消收藏"), "success");
+      router.refresh();
+    } catch {
+      toast("收藏操作失败，请稍后再试", "error");
+    } finally {
+      setLoading(false);
     }
-
-    const nextFavorited = Boolean(result.favorited);
-    const nextFavoriteCount =
-      typeof result.favoriteCount === "number"
-        ? result.favoriteCount
-        : favoriteCount;
-
-    setFavorited(nextFavorited);
-    setFavoriteCount(nextFavoriteCount);
-    toast(result.message || (nextFavorited ? "作品已收藏" : "已取消收藏"), "success");
-    router.refresh();
   }
 
   return (

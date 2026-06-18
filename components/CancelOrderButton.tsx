@@ -50,7 +50,7 @@ export default function CancelOrderButton({
     }
 
     if (!result.success) {
-      alert(result.message || "取消订单失败");
+      toast(result.message || "取消订单失败", "error");
       router.refresh();
       return;
     }

@@ -1,6 +1,6 @@
 "use client";
 import GalleryImagePicker from "@/components/GalleryImagePicker";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useFeedback } from "@/components/FeedbackProvider";
@@ -27,23 +27,26 @@ export default function UploadPostForm() {
   const [isPinned, setIsPinned] = useState(false);
 
   const [image, setImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState("");
 
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
+  const previewUrl = useMemo(() => {
     if (!image) {
-      setPreviewUrl("");
+      return "";
+    }
+
+    return URL.createObjectURL(image);
+  }, [image]);
+
+  useEffect(() => {
+    if (!previewUrl) {
       return;
     }
 
-    const url = URL.createObjectURL(image);
-    setPreviewUrl(url);
-
     return () => {
-      URL.revokeObjectURL(url);
+      URL.revokeObjectURL(previewUrl);
     };
-  }, [image]);
+  }, [previewUrl]);
 
   function resetPaidFields() {
     setAccessType("FREE");
@@ -142,7 +145,7 @@ export default function UploadPostForm() {
     setLoading(false);
 
     if (!response.ok || !result.success) {
-      alert(result.message || "发布失败");
+      toast(result.message || "发布失败", "error");
       return;
     }
 
