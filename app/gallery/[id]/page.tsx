@@ -8,7 +8,7 @@ import Footer from "@/components/Footer";
 import CommentSection from "@/components/CommentSection";
 import PurchaseButton from "@/components/PurchaseButton";
 import PostStatusBadges from "@/components/PostStatusBadges";
-
+import PostImageGallery from "@/components/PostImageGallery";
 type PageProps = {
   params: Promise<{
     id: string;
@@ -74,6 +74,11 @@ export default async function PostDetailPage({ params }: PageProps) {
               avatarUrl: true,
             },
           },
+        },
+      },
+      images: {
+        orderBy: {
+          sortOrder: "asc",
         },
       },
     },
@@ -263,6 +268,15 @@ export default async function PostDetailPage({ params }: PageProps) {
                   </section>
                 )}
 
+                {post.images.length > 0 && (
+                  <PostImageGallery
+                    images={post.images.map((image) => ({
+                      id: image.id,
+                      imageUrl: image.imageUrl,
+                    }))}
+                  />
+                )}
+                
                 {!isNotice && (
                   <section className="rounded-3xl border border-white/10 bg-black/30 p-6">
                     <h2 className="mb-4 text-2xl font-bold">

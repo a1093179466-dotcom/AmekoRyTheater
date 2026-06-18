@@ -126,6 +126,7 @@ model Post {
   comments   Comment[]
   purchases  Purchase[]
   orders       Order[]
+  images PostImage[]
 }
 
 model Comment {
@@ -254,4 +255,16 @@ model SiteSetting {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PostImage {
+  id        Int      @id @default(autoincrement())
+  postId    Int
+  imageUrl  String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
 }

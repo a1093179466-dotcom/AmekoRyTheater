@@ -1,5 +1,5 @@
 "use client";
-
+import GalleryImagePicker from "@/components/GalleryImagePicker";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -16,7 +16,7 @@ export default function UploadPostForm() {
   const [title, setTitle] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
-
+  const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [previewContent, setPreviewContent] = useState("");
   const [paidContent, setPaidContent] = useState("");
   const [downloadUrl, setDownloadUrl] = useState("");
@@ -127,6 +127,9 @@ export default function UploadPostForm() {
 
     if (image) {
       formData.append("image", image);
+      galleryImages.forEach((file) => {
+        formData.append("galleryImages", file);
+      });
     }
 
     const response = await fetch("/api/posts", {
@@ -356,6 +359,20 @@ export default function UploadPostForm() {
                     </div>
                   )}
                 </div>
+              </section>
+              <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/40">
+                <div className="mb-6">
+                  <p className="mb-2 text-sm uppercase tracking-[0.25em] text-rose-300">
+                    Gallery
+                  </p>
+
+                  <h2 className="text-3xl font-bold">作品多图</h2>
+                </div>
+
+                <GalleryImagePicker
+                  files={galleryImages}
+                  onChange={setGalleryImages}
+                />
               </section>
             </div>
 

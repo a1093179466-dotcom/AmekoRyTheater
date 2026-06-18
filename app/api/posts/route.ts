@@ -1,36 +1,20 @@
 import { prisma } from "@/lib/prisma";
 import { isCurrentUserAdmin } from "@/lib/auth";
-
-import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
-import path from "path";
+import { saveUploadedImage } from "@/lib/uploadFile";
 
 export const runtime = "nodejs";
 
 /**
  * 创建帖子 API
  *
- * 请求路径：
- * POST /api/posts
- *
- * 作用：
- * 管理员在后台发布新帖子时调用。
- *
- * 现在支持：
- * - 普通作品帖 WORK
- * - 公告帖 NOTICE
- * - 免费预览内容
- * - 付费隐藏内容
- * - 下载链接 / 提取码
+ * 支持：
+ * - 作品 / 公告
+ * - 免费 / 付费
  * - 封面图上传
- * - 是否发布
- * - 是否置顶
+ * - 多张作品预览图 galleryImages
  */
 export async function POST(request: Request) {
   try {
-    // API 权限检查：
-    // 即使别人绕过 dashboard 页面直接请求 API，
-    // 后端也会再次确认当前用户是不是管理员。
     const isAdmin = await isCurrentUserAdmin();
 
     if (!isAdmin) {
@@ -45,8 +29,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // 因为发布帖子可能包含封面图片，
-    // 所以这里使用 formData，而不是 request.json()。
     const formData = await request.formData();
 
     const title = String(formData.get("title") || "").trim();
@@ -72,8 +54,6 @@ export async function POST(request: Request) {
     const rawType = String(formData.get("type") || "WORK");
     const accessType = String(formData.get("accessType") || "FREE");
 
-    // 表单传来的 checkbox 字符串转成 boolean。
-    // 前端会传 "true" 或 "false"。
     const isPublished =
       String(formData.get("isPublished")) === "true";
 
@@ -83,13 +63,10 @@ export async function POST(request: Request) {
     const price = Number(formData.get("price") || 0);
 
     const image = formData.get("image");
+    const galleryImages = formData.getAll("galleryImages");
 
-    // 只允许这两种帖子类型。
-    // 避免前端传入乱七八糟的 type。
-    const type =
-      rawType === "NOTICE" ? "NOTICE" : "WORK";
+    const type = rawType === "NOTICE" ? "NOTICE" : "WORK";
 
-    // 基础表单校验
     if (!title) {
       return Response.json(
         { success: false, message: "标题不能为空" },
@@ -121,18 +98,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // 公告帖不应该设置为付费内容。
-    // 所以如果 type 是 NOTICE，就强制价格为 0。
-    // 公告帖永远免费。
-    // 作品帖是否付费，由 accessType 明确决定。
     const isPaid = type === "WORK" && accessType === "PAID";
-
-    // 免费内容价格强制为 0。
-    // 付费内容使用表单传来的价格。
     const finalPrice = isPaid ? price : 0;
 
-    // 后端再次校验：付费作品价格必须大于 0。
-    // 这一步不能只靠前端，因为别人可能绕过页面直接请求 API。
     if (isPaid && finalPrice <= 0) {
       return Response.json(
         {
@@ -145,54 +113,51 @@ export async function POST(request: Request) {
       );
     }
 
-    // 默认封面。
-    // 如果用户上传了封面，下面会替换成真实上传路径。
     let coverImage = "/images/test1.jpg";
 
-    // 处理封面图片上传。
     if (image instanceof File && image.size > 0) {
-      if (!image.type.startsWith("image/")) {
+      try {
+        coverImage = await saveUploadedImage(image, "posts");
+      } catch (error) {
         return Response.json(
-          { success: false, message: "只能上传图片文件" },
-          { status: 400 }
+          {
+            success: false,
+            message:
+              error instanceof Error
+                ? error.message
+                : "封面图上传失败",
+          },
+          {
+            status: 400,
+          }
         );
       }
+    }
 
-      // 限制图片最大 5MB。
-      const maxSize = 5 * 1024 * 1024;
+    const galleryImageUrls: string[] = [];
 
-      if (image.size > maxSize) {
-        return Response.json(
-          { success: false, message: "图片不能超过 5MB" },
-          { status: 400 }
-        );
+    for (const item of galleryImages) {
+      if (!(item instanceof File) || item.size <= 0) {
+        continue;
       }
 
-      // 把浏览器传来的 File 转成 Node.js 可以写入磁盘的 Buffer。
-      const bytes = await image.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const originalExtension = image.name.split(".").pop() || "jpg";
-      const safeExtension = originalExtension.toLowerCase();
-
-      // 用 UUID 生成文件名，避免不同图片重名覆盖。
-      const fileName = `${randomUUID()}.${safeExtension}`;
-
-      const uploadDir = path.join(
-        process.cwd(),
-        "public",
-        "uploads"
-      );
-
-      await mkdir(uploadDir, { recursive: true });
-
-      const filePath = path.join(uploadDir, fileName);
-
-      await writeFile(filePath, buffer);
-
-      // 保存到数据库里的不是磁盘绝对路径，
-      // 而是浏览器可以访问的 public 路径。
-      coverImage = `/uploads/${fileName}`;
+      try {
+        const imageUrl = await saveUploadedImage(item, "post-images");
+        galleryImageUrls.push(imageUrl);
+      } catch (error) {
+        return Response.json(
+          {
+            success: false,
+            message:
+              error instanceof Error
+                ? error.message
+                : "作品预览图上传失败",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
     }
 
     const post = await prisma.post.create({
@@ -202,12 +167,8 @@ export async function POST(request: Request) {
         excerpt,
         content,
         previewContent,
-        // 免费作品不保存付费隐藏内容。
-        // 这样即使前端误传了 paidContent，数据库也不会保存。
         paidContent: isPaid ? paidContent : "",
         coverImage,
-        
-        // 免费作品不保存下载链接和提取码。
         downloadUrl: isPaid && downloadUrl ? downloadUrl : null,
         downloadCode: isPaid && downloadCode ? downloadCode : null,
         author: "AmekoRy",
@@ -215,6 +176,23 @@ export async function POST(request: Request) {
         price: finalPrice,
         isPublished,
         isPinned,
+
+        images:
+          galleryImageUrls.length > 0
+            ? {
+                create: galleryImageUrls.map((imageUrl, index) => ({
+                  imageUrl,
+                  sortOrder: index,
+                })),
+              }
+            : undefined,
+      },
+      include: {
+        images: {
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
       },
     });
 

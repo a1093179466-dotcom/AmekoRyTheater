@@ -1,5 +1,5 @@
 "use client";
-
+import GalleryImagePicker from "@/components/GalleryImagePicker";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -23,6 +23,11 @@ type EditPostFormProps = {
     price: number;
     isPublished: boolean;
     isPinned: boolean;
+    images: {
+      id: number;
+      imageUrl: string;
+      sortOrder: number;
+    }[];
   };
 };
 
@@ -33,7 +38,7 @@ export default function EditPostForm({ post }: EditPostFormProps) {
   const [accessType, setAccessType] = useState<AccessType>(
     post.isPaid ? "PAID" : "FREE"
   );
-
+  const [galleryImages, setGalleryImages] = useState<File[]>([]);
   const [title, setTitle] = useState(post.title);
   const [excerpt, setExcerpt] = useState(post.excerpt);
   const [content, setContent] = useState(post.content);
@@ -150,6 +155,9 @@ export default function EditPostForm({ post }: EditPostFormProps) {
 
     if (image) {
       formData.append("image", image);
+      galleryImages.forEach((file) => {
+        formData.append("galleryImages", file);
+      });
     }
 
     const response = await fetch(`/api/posts/${post.id}`, {
@@ -395,6 +403,21 @@ export default function EditPostForm({ post }: EditPostFormProps) {
                     </div>
                   ) : null}
                 </div>
+              </section>
+              <section className="rounded-[2rem] border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/40">
+                <div className="mb-6">
+                  <p className="mb-2 text-sm uppercase tracking-[0.25em] text-rose-300">
+                    Gallery
+                  </p>
+
+                  <h2 className="text-3xl font-bold">作品多图</h2>
+                </div>
+
+                <GalleryImagePicker
+                  files={galleryImages}
+                  onChange={setGalleryImages}
+                  existingImages={post.images}
+                />
               </section>
             </div>
 

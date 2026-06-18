@@ -37,6 +37,13 @@ export default async function EditPostPage({ params }: EditPostPageProps) {
     where: {
       id: postId,
     },
+    include: {
+      images: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
+    },
   });
 
   if (!post) {

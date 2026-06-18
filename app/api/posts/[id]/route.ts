@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { isCurrentUserAdmin } from "@/lib/auth";
-import { mkdir, writeFile, unlink } from "fs/promises";
+import { unlink } from "fs/promises";
 import path from "path";
-import { randomUUID } from "crypto";
+
+import { saveUploadedImage } from "@/lib/uploadFile";
+
 export const runtime = "nodejs";
 
 type RouteContext = {
@@ -11,12 +13,31 @@ type RouteContext = {
   }>;
 };
 
+async function deletePublicUploadFile(fileUrl: string | null) {
+  if (!fileUrl || !fileUrl.startsWith("/uploads/")) {
+    return;
+  }
+
+  const relativePath = fileUrl.replace(/^\/+/, "");
+
+  const filePath = path.join(
+    process.cwd(),
+    "public",
+    relativePath
+  );
+
+  try {
+    await unlink(filePath);
+  } catch {
+    console.log("上传文件不存在或已经被删除：", filePath);
+  }
+}
+
 export async function DELETE(
   _request: Request,
   context: RouteContext
 ) {
   try {
-    // API 权限检查：只有管理员可以删除帖子
     const isAdmin = await isCurrentUserAdmin();
 
     if (!isAdmin) {
@@ -30,8 +51,8 @@ export async function DELETE(
         }
       );
     }
-    const { id } = await context.params;
 
+    const { id } = await context.params;
     const postId = Number(id);
 
     if (Number.isNaN(postId)) {
@@ -49,6 +70,9 @@ export async function DELETE(
     const post = await prisma.post.findUnique({
       where: {
         id: postId,
+      },
+      include: {
+        images: true,
       },
     });
 
@@ -70,20 +94,10 @@ export async function DELETE(
       },
     });
 
-    if (post.coverImage.startsWith("/uploads/")) {
-      const relativePath = post.coverImage.replace(/^\/+/, "");
+    await deletePublicUploadFile(post.coverImage);
 
-      const filePath = path.join(
-        process.cwd(),
-        "public",
-        relativePath
-      );
-
-      try {
-        await unlink(filePath);
-      } catch {
-        console.log("封面文件不存在或已经被删除：", filePath);
-      }
+    for (const image of post.images) {
+      await deletePublicUploadFile(image.imageUrl);
     }
 
     return Response.json({
@@ -104,12 +118,12 @@ export async function DELETE(
     );
   }
 }
+
 export async function PATCH(
   request: Request,
   context: RouteContext
 ) {
   try {
-    // API 权限检查：只有管理员可以编辑帖子
     const isAdmin = await isCurrentUserAdmin();
 
     if (!isAdmin) {
@@ -127,7 +141,6 @@ export async function PATCH(
     const { id } = await context.params;
     const postId = Number(id);
 
-    // 校验 URL 里的帖子 ID 是否有效
     if (Number.isNaN(postId)) {
       return Response.json(
         {
@@ -140,11 +153,12 @@ export async function PATCH(
       );
     }
 
-    // 先查询旧帖子。
-    // 后面需要根据旧封面路径决定是否删除旧图片。
     const oldPost = await prisma.post.findUnique({
       where: {
         id: postId,
+      },
+      include: {
+        images: true,
       },
     });
 
@@ -160,7 +174,6 @@ export async function PATCH(
       );
     }
 
-    // 编辑帖子可能上传新封面，所以继续使用 FormData。
     const formData = await request.formData();
 
     const title = String(formData.get("title") || "").trim();
@@ -195,10 +208,10 @@ export async function PATCH(
     const price = Number(formData.get("price") || 0);
 
     const image = formData.get("image");
+    const galleryImages = formData.getAll("galleryImages");
 
     const type = rawType === "NOTICE" ? "NOTICE" : "WORK";
 
-    // 基础表单校验
     if (!title) {
       return Response.json(
         {
@@ -247,15 +260,9 @@ export async function PATCH(
       );
     }
 
-    // 公告帖永远免费。
-    // 作品帖是否付费，由 accessType 决定。
     const isPaid = type === "WORK" && accessType === "PAID";
-
-    // 免费内容价格强制为 0。
-    // 付费内容使用表单传来的价格。
     const finalPrice = isPaid ? price : 0;
 
-    // 后端再次校验：付费作品价格必须大于 0。
     if (isPaid && finalPrice <= 0) {
       return Response.json(
         {
@@ -268,61 +275,58 @@ export async function PATCH(
       );
     }
 
-    // 默认沿用旧封面。
-    // 如果用户上传了新封面，下面会替换成新路径。
     let coverImage = oldPost.coverImage;
 
     if (image instanceof File && image.size > 0) {
-      if (!image.type.startsWith("image/")) {
+      try {
+        coverImage = await saveUploadedImage(image, "posts");
+      } catch (error) {
         return Response.json(
           {
             success: false,
-            message: "只能上传图片文件",
+            message:
+              error instanceof Error
+                ? error.message
+                : "封面图上传失败",
           },
           {
             status: 400,
           }
         );
       }
-
-      const maxSize = 5 * 1024 * 1024;
-
-      if (image.size > maxSize) {
-        return Response.json(
-          {
-            success: false,
-            message: "图片不能超过 5MB",
-          },
-          {
-            status: 400,
-          }
-        );
-      }
-
-      const bytes = await image.arrayBuffer();
-      const buffer = Buffer.from(bytes);
-
-      const originalExtension = image.name.split(".").pop() || "jpg";
-      const safeExtension = originalExtension.toLowerCase();
-      const fileName = `${randomUUID()}.${safeExtension}`;
-
-      const uploadDir = path.join(
-        process.cwd(),
-        "public",
-        "uploads"
-      );
-
-      await mkdir(uploadDir, { recursive: true });
-
-      const filePath = path.join(uploadDir, fileName);
-
-      await writeFile(filePath, buffer);
-
-      coverImage = `/uploads/${fileName}`;
     }
 
-    // 更新数据库。
-    // 免费作品不保存付费隐藏内容、下载链接和提取码。
+    const nextSortOrder =
+      oldPost.images.length > 0
+        ? Math.max(...oldPost.images.map((item) => item.sortOrder)) + 1
+        : 0;
+
+    const galleryImageUrls: string[] = [];
+
+    for (const item of galleryImages) {
+      if (!(item instanceof File) || item.size <= 0) {
+        continue;
+      }
+
+      try {
+        const imageUrl = await saveUploadedImage(item, "post-images");
+        galleryImageUrls.push(imageUrl);
+      } catch (error) {
+        return Response.json(
+          {
+            success: false,
+            message:
+              error instanceof Error
+                ? error.message
+                : "作品预览图上传失败",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+    }
+
     const updatedPost = await prisma.post.update({
       where: {
         id: postId,
@@ -341,28 +345,28 @@ export async function PATCH(
         price: finalPrice,
         isPublished,
         isPinned,
+
+        images:
+          galleryImageUrls.length > 0
+            ? {
+                create: galleryImageUrls.map((imageUrl, index) => ({
+                  imageUrl,
+                  sortOrder: nextSortOrder + index,
+                })),
+              }
+            : undefined,
+      },
+      include: {
+        images: {
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
       },
     });
 
-    // 如果上传了新封面，并且旧封面也是 public/uploads 里的上传文件，
-    // 就删除旧封面，避免本地 uploads 文件越来越多。
-    if (
-      coverImage !== oldPost.coverImage &&
-      oldPost.coverImage.startsWith("/uploads/")
-    ) {
-      const relativePath = oldPost.coverImage.replace(/^\/+/, "");
-
-      const oldFilePath = path.join(
-        process.cwd(),
-        "public",
-        relativePath
-      );
-
-      try {
-        await unlink(oldFilePath);
-      } catch {
-        console.log("旧封面文件不存在或已经被删除：", oldFilePath);
-      }
+    if (coverImage !== oldPost.coverImage) {
+      await deletePublicUploadFile(oldPost.coverImage);
     }
 
     return Response.json({
