@@ -290,8 +290,10 @@ model SiteSetting {
   siteTitle    String @default("AmekoRyTheater")
   siteSubtitle String @default("Personal Creation Theater")
 
-  homeHeroTitle    String @default("AmekoRyTheater")
-  homeHeroSubtitle String @default("个人创作者内容剧场")
+  homeHeroTitle        String @default("AmekoRyTheater")
+  homeHeroSubtitle     String @default("个人创作者内容剧场")
+  homeBackgroundImage String @default("")
+  homeHeroImage       String @default("")
 
   tickerEnabled Boolean @default(false)
   tickerText    String  @default("")

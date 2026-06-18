@@ -61,6 +61,8 @@ export default async function Home() {
 
   const featuredPost = posts[0];
   const otherPosts = posts.slice(1);
+  const homeBackgroundImage = setting.homeBackgroundImage.trim();
+  const homeHeroImage = setting.homeHeroImage.trim();
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
@@ -69,42 +71,68 @@ export default async function Home() {
       <SiteTicker />
 
       <section className="relative overflow-hidden px-6 py-24">
+        {homeBackgroundImage && (
+          <>
+            <div
+              className="absolute inset-0 bg-cover bg-center opacity-60"
+              style={{
+                backgroundImage: `url(${JSON.stringify(homeBackgroundImage)})`,
+              }}
+            />
+            <div className="absolute inset-0 bg-black/75" />
+          </>
+        )}
+
         <div className="absolute left-1/2 top-0 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-rose-500/20 blur-3xl" />
         <div className="absolute right-10 top-32 h-[260px] w-[260px] rounded-full bg-amber-400/10 blur-3xl" />
         <div className="absolute bottom-0 left-10 h-[260px] w-[260px] rounded-full bg-fuchsia-500/10 blur-3xl" />
 
         <div className="relative mx-auto max-w-7xl">
-          <div className="mb-16 max-w-3xl">
-            <p className="mb-4 text-sm font-medium uppercase tracking-[0.35em] text-rose-300">
-              {setting.siteSubtitle || "Personal Creation Theater"}
-            </p>
+          <div className="mb-16 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(280px,420px)] lg:items-center">
+            <div className="max-w-3xl">
+              <p className="mb-4 text-sm font-medium uppercase tracking-[0.35em] text-rose-300">
+                {setting.siteSubtitle || "Personal Creation Theater"}
+              </p>
 
-            <h1 className="mb-6 max-w-4xl text-6xl font-black tracking-tight md:text-7xl">
-              <span className="bg-gradient-to-r from-rose-100 via-fuchsia-100 to-amber-100 bg-clip-text text-transparent">
-                {setting.homeHeroTitle || "AmekoRyTheater"}
-              </span>
-            </h1>
+              <h1 className="mb-6 max-w-4xl text-6xl font-black tracking-tight md:text-7xl">
+                <span className="bg-gradient-to-r from-rose-100 via-fuchsia-100 to-amber-100 bg-clip-text text-transparent">
+                  {setting.homeHeroTitle || "AmekoRyTheater"}
+                </span>
+              </h1>
 
-            <p className="max-w-2xl text-lg leading-8 text-zinc-400">
-              {setting.homeHeroSubtitle ||
-                "一个用于发布个人作品、公告通知与付费内容的创作者剧场。在这里可以浏览免费内容，也可以购买单篇作品解锁隐藏内容。"}
-            </p>
+              <p className="max-w-2xl text-lg leading-8 text-zinc-400">
+                {setting.homeHeroSubtitle ||
+                  "一个用于发布个人作品、公告通知与付费内容的创作者剧场。在这里可以浏览免费内容，也可以购买单篇作品解锁隐藏内容。"}
+              </p>
 
-            <div className="mt-8 flex flex-wrap gap-4">
-              <Link
-                href="/gallery"
-                className="rounded-full bg-white px-6 py-3 font-medium text-black hover:bg-rose-100 transition"
-              >
-                浏览作品
-              </Link>
+              <div className="mt-8 flex flex-wrap gap-4">
+                <Link
+                  href="/gallery"
+                  className="rounded-full bg-white px-6 py-3 font-medium text-black hover:bg-rose-100 transition"
+                >
+                  浏览作品
+                </Link>
 
-              <Link
-                href="/notices"
-                className="rounded-full border border-white/15 bg-white/5 px-6 py-3 font-medium text-white hover:bg-white/10 transition"
-              >
-                查看公告
-              </Link>
+                <Link
+                  href="/notices"
+                  className="rounded-full border border-white/15 bg-white/5 px-6 py-3 font-medium text-white hover:bg-white/10 transition"
+                >
+                  查看公告
+                </Link>
+              </div>
             </div>
+
+            {homeHeroImage && (
+              <div className="relative min-h-[260px] overflow-hidden rounded-[2rem] border border-white/10 bg-white/[0.04] shadow-2xl shadow-black/40 md:min-h-[340px]">
+                <div
+                  className="absolute inset-0 bg-cover bg-center"
+                  style={{
+                    backgroundImage: `url(${JSON.stringify(homeHeroImage)})`,
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-white/5" />
+              </div>
+            )}
           </div>
 
           {featuredPost && (

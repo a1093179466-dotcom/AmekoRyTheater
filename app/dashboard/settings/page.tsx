@@ -48,7 +48,7 @@ export default async function DashboardSettingsPage() {
             </h1>
 
             <p className="max-w-2xl text-zinc-400">
-              管理首页标题、站点副标题、滚动公告、联系信息和外部平台链接。后续背景图、头图、favicon 也会合并到这里。
+              管理首页标题、站点副标题、首页视觉资源、滚动公告、联系信息和外部平台链接。
             </p>
           </div>
 
@@ -58,6 +58,8 @@ export default async function DashboardSettingsPage() {
               siteSubtitle: setting.siteSubtitle,
               homeHeroTitle: setting.homeHeroTitle,
               homeHeroSubtitle: setting.homeHeroSubtitle,
+              homeBackgroundImage: setting.homeBackgroundImage,
+              homeHeroImage: setting.homeHeroImage,
               tickerEnabled: setting.tickerEnabled,
               tickerText: setting.tickerText,
               aboutText: setting.aboutText,

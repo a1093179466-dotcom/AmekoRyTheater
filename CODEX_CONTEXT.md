@@ -84,6 +84,7 @@ Completed:
 * Click notification to mark read and navigate
 * Card-level like / favorite controls
 * About page powered by site settings
+* Homepage background image and Hero image configurable from site settings
 
 ## Important Existing Files
 
@@ -191,6 +192,7 @@ Recent additions:
 * Favorite model for post collections
 * Like model for post likes
 * Notification model for in-site notifications
+* SiteSetting homeBackgroundImage / homeHeroImage for homepage visual assets
 
 PostImage:
 
@@ -256,31 +258,22 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-Interaction system cleanup.
+Site settings visual assets phase 1.
 
 Implemented:
 
-* Navbar avatar menu and unread notification badge
-* Notification list with click-to-read navigation and read-all
-* Comment replies and comment delete permissions
-* COMMENT_REPLY notifications for replied users
-* POST_COMMENTED / POST_LIKED / POST_FAVORITED / POST_PURCHASED admin notifications
-* Post like and favorite APIs and compact icon buttons
-* Card-level like / favorite controls on home, gallery, and profile favorites
-* Profile favorites page
-* About page reading SiteSetting about/contact/external link fields
+* SiteSetting homeBackgroundImage and homeHeroImage fields
+* Dashboard site settings can save homepage background and Hero image URLs
+* Dashboard site settings can upload homepage background and Hero image files
+* Dashboard site settings can clear homepage background and Hero image values
+* Site settings API supports multipart image uploads under public/uploads/site-settings
+* Homepage reads configured visual assets with dark overlay and responsive Hero visual
+* Interaction system cleanup remains completed, including comment replies, notifications, likes, favorites, card interactions, avatar menu, and admin interaction notifications
 
 ## Recommended Next Task
 
 Next task:
-Site settings phase 2, or payment system preflight cleanup.
-
-Suggested site settings phase 2:
-
-1. Homepage background image
-2. Hero/banner image
-3. Favicon manual replacement or upload flow
-4. Optional visual preview for configured assets
+Payment system preflight cleanup, or favicon / site icon handling.
 
 Suggested payment preflight cleanup:
 
@@ -289,16 +282,20 @@ Suggested payment preflight cleanup:
 3. Confirm order status transitions and idempotency
 4. Keep Purchase creation behind verified payment success
 
+Suggested favicon / site icon handling:
+
+1. Confirm current app icon / favicon files
+2. Decide manual replacement or later upload flow
+3. Document cache behavior and recommended image formats
+
 ## Later Roadmap
 
-After interaction cleanup:
+After site settings visual assets phase 1:
 
-1. Site settings phase 2:
+1. Payment system preflight and real payment integration prep
+2. Favicon / site icon handling
 
-   * homepage background image
-   * hero/banner image
-   * favicon upload or manual favicon replacement
-2. Payment system preflight and real payment integration prep
+   * manual replacement first, upload flow can be delayed
 3. Email system:
 
    * email verification
@@ -882,3 +879,52 @@ After interaction cleanup:
 * 当前浏览器插件被沙盒拒绝启动，未能做可视化鼠标轨迹验证；本次已通过代码结构、类型检查、lint 和本地页面/API 验证覆盖主要行为
 
 推荐下一步：互动系统收尾检查
+
+---
+
+## Update Record: Site Settings Visual Assets Phase 1
+
+本次完成：站点设置第二阶段第一轮
+
+修改过的文件：
+* prisma/schema.prisma
+* app/api/site-settings/route.ts
+* app/dashboard/settings/page.tsx
+* components/SiteSettingsForm.tsx
+* app/page.tsx
+* CODEX_CONTEXT.md
+* ROADMAP.md
+
+新增或修改的 SiteSetting 字段：
+* homeBackgroundImage String @default("")
+* homeHeroImage String @default("")
+
+新增或修改的上传逻辑：
+* PATCH /api/site-settings 支持 multipart/form-data
+* 支持 homeBackgroundImageFile 和 homeHeroImageFile
+* 上传图片保存到 public/uploads/site-settings
+* 返回 /uploads/site-settings/... 浏览器可访问路径
+* 未上传新图时保留已有值
+* 传空字符串时清空对应图片配置
+* 上传失败返回友好 JSON，不使用 alert/window.confirm
+
+修改的页面 / 组件：
+* 后台站点设置页新增“首页视觉资源”区域
+* SiteSettingsForm 支持背景图 / Hero 图 URL 输入、上传、预览和清空
+* 首页读取 homeBackgroundImage 作为带黑色遮罩的背景图
+* 首页读取 homeHeroImage 作为响应式 Hero 主视觉图
+
+测试结果：
+* npx prisma db push 成功
+* npx prisma generate 成功
+* npx tsc --noEmit 通过
+* npm run build 通过
+* 生产服务 HTTP 验证通过：背景图 URL 保存、Hero 图 URL 保存、背景图文件上传、Hero 图文件上传、清空配置、首页读取展示
+* 测试上传图片已清理，git status 未出现上传图片文件
+* 全局扫描 app/components/lib/prisma 未发现 alert/window.confirm 或用户可见“买断”文案
+
+已知问题：
+* 当前功能暂无已知问题
+* 额外执行 npm run lint 时仍被旧的 components/PayOrderButton.tsx 倒计时 effect lint 问题阻塞；该问题不是本轮站点设置改动引入，本轮未改无关文件
+
+推荐下一步：支付系统前置整理，或 favicon / 站点图标处理
