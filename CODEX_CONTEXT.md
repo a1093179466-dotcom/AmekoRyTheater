@@ -434,3 +434,68 @@ After gallery image deletion:
 * 暂无
 
 推荐下一步：作品点赞系统第一轮
+
+---
+
+## Update Record: Post Like Toggle
+
+本次完成：作品点赞系统第一轮
+
+修改过的文件：
+* prisma/schema.prisma
+* app/api/likes/route.ts
+* app/gallery/[id]/page.tsx
+* components/LikeButton.tsx
+* CODEX_CONTEXT.md
+
+新增的 Prisma 模型：
+* Like
+  * id
+  * userId
+  * postId
+  * createdAt
+  * user relation，onDelete Cascade
+  * post relation，onDelete Cascade
+  * @@unique([userId, postId])
+  * @@index([userId])
+  * @@index([postId])
+
+新增的 API：
+* POST /api/likes
+  * 登录用户点赞 WORK 作品
+  * 重复点赞保持幂等，不报错
+  * NOTICE 公告不允许点赞
+  * 返回 liked 和 likeCount
+* DELETE /api/likes
+  * 登录用户取消点赞
+  * 取消不存在的点赞保持幂等，不报错
+  * 返回 liked 和 likeCount
+
+新增的组件：
+* components/LikeButton.tsx
+  * 显示点赞 / 已点赞状态
+  * 显示点赞数
+  * 点击切换点赞状态
+  * loading 状态防止重复点击
+  * 使用 FeedbackProvider toast，不使用 alert/window.confirm
+
+测试结果：
+* npx prisma db push 成功
+* npx prisma generate 成功
+* npx tsc --noEmit 通过
+* npm run lint -- app/api/likes/route.ts components/LikeButton.tsx app/gallery/[id]/page.tsx 通过
+* npm run dev 成功启动，/gallery 返回 200
+* 未登录访问作品详情页 /gallery/6 返回 200
+* 未登录 POST /api/likes 返回 401 和“请先登录后再点赞”，没有 500
+* 登录用户 POST /api/likes 可以点赞，返回 liked=true 和最新 likeCount
+* 重复 POST /api/likes 返回 200，不重复增加点赞
+* DELETE /api/likes 可以取消点赞，返回 liked=false 和最新 likeCount
+* 重复 DELETE /api/likes 返回 200，不导致 500
+* 公告页 /gallery/13 返回 200，POST /api/likes 对 NOTICE 返回 400
+* 测试结束后已恢复测试前点赞状态
+* 收藏 API 回归通过，个人中心“我的收藏”页面 /profile/favorites 返回 200
+
+已知问题：
+* 暂无
+
+推荐下一步：评论回复系统第一轮

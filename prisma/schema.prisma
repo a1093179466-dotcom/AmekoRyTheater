@@ -40,6 +40,7 @@ model User {
   comments     Comment[]
   purchases    Purchase[]
   favorites    Favorite[]
+  likes        Like[]
   avatarUrl String?
 }
 
@@ -129,6 +130,7 @@ model Post {
   orders       Order[]
   images PostImage[]
   favorites Favorite[]
+  likes Like[]
 }
 
 model Comment {
@@ -184,6 +186,20 @@ model Purchase {
 }
 
 model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  postId    Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
+}
+
+model Like {
   id        Int      @id @default(autoincrement())
   userId    Int
   postId    Int

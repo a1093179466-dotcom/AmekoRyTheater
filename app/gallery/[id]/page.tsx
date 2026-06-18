@@ -10,6 +10,7 @@ import PurchaseButton from "@/components/PurchaseButton";
 import PostStatusBadges from "@/components/PostStatusBadges";
 import PostImageGallery from "@/components/PostImageGallery";
 import FavoriteButton from "@/components/FavoriteButton";
+import LikeButton from "@/components/LikeButton";
 type PageProps = {
   params: Promise<{
     id: string;
@@ -139,9 +140,11 @@ export default async function PostDetailPage({ params }: PageProps) {
 
   let favoriteCount = 0;
   let isFavorited = false;
+  let likeCount = 0;
+  let isLiked = false;
 
   if (!isNotice) {
-    const [count, favorite] = await Promise.all([
+    const [favorites, favorite, likes, like] = await Promise.all([
       prisma.favorite.count({
         where: {
           postId: post.id,
@@ -160,10 +163,30 @@ export default async function PostDetailPage({ params }: PageProps) {
             },
           })
         : Promise.resolve(null),
+      prisma.like.count({
+        where: {
+          postId: post.id,
+        },
+      }),
+      currentUser
+        ? prisma.like.findUnique({
+            where: {
+              userId_postId: {
+                userId: currentUser.id,
+                postId: post.id,
+              },
+            },
+            select: {
+              id: true,
+            },
+          })
+        : Promise.resolve(null),
     ]);
 
-    favoriteCount = count;
+    favoriteCount = favorites;
     isFavorited = Boolean(favorite);
+    likeCount = likes;
+    isLiked = Boolean(like);
   }
 
   const canViewPaidContent =
@@ -409,11 +432,18 @@ export default async function PostDetailPage({ params }: PageProps) {
                 </h2>
 
                 {!isNotice && (
-                  <div className="mb-6">
+                  <div className="mb-6 flex flex-col gap-3">
                     <FavoriteButton
                       postId={post.id}
                       initialFavorited={isFavorited}
                       initialFavoriteCount={favoriteCount}
+                      isLoggedIn={Boolean(currentUser)}
+                    />
+
+                    <LikeButton
+                      postId={post.id}
+                      initialLiked={isLiked}
+                      initialLikeCount={likeCount}
                       isLoggedIn={Boolean(currentUser)}
                     />
                   </div>
