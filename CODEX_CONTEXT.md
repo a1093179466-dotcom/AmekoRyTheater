@@ -728,3 +728,33 @@ After gallery image deletion:
 * 暂无
 
 推荐下一步：互动系统收尾检查
+
+---
+
+## Update Record: Navbar Menu and Notification Read Interaction Fix
+
+本次完成：
+* 修复导航栏头像下拉菜单 hover 间隙导致的闪退问题
+* 头像菜单在鼠标停留于头像或下拉框内时保持显示，离开后再关闭
+* 通知列表改为点击通知卡片自动标记已读并进入对应内容
+* 移除单条通知的手动“标记已读”按钮，保留“全部标记已读”批量工具
+
+修改过的文件：
+* components/UserNavMenu.tsx
+* components/NotificationList.tsx
+* CODEX_CONTEXT.md
+
+测试结果：
+* npx tsc --noEmit 通过
+* npm run lint -- components/UserNavMenu.tsx components/NotificationList.tsx 通过
+* npm run dev 成功启动，/gallery 返回 200
+* 登录态首页响应包含用户信息、未读通知数字和通知入口
+* /profile/notifications 响应包含通知目标链接
+* 通知单条手动“标记已读”按钮已不再显示
+* POST /api/notifications/[id]/read 成功后未读数归零
+* 测试创建的临时用户、会话和通知已清理
+
+已知问题：
+* 当前浏览器插件被沙盒拒绝启动，未能做可视化鼠标轨迹验证；本次已通过代码结构、类型检查、lint 和本地页面/API 验证覆盖主要行为
+
+推荐下一步：互动系统收尾检查

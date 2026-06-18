@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type MouseEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -31,7 +31,7 @@ export default function NotificationList({
 
   const unreadCount = items.filter((item) => !item.isRead).length;
 
-  async function markAsRead(notificationId: number) {
+  async function markAsRead(notificationId: number, silent = false) {
     setLoadingId(notificationId);
 
     try {
@@ -42,8 +42,10 @@ export default function NotificationList({
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        toast(result.message || "标记已读失败", "error");
-        return;
+        if (!silent) {
+          toast(result.message || "标记已读失败", "error");
+        }
+        return false;
       }
 
       setItems((current) =>
@@ -51,13 +53,37 @@ export default function NotificationList({
           item.id === notificationId ? { ...item, isRead: true } : item
         )
       );
-      toast("通知已标记为已读", "success");
+      if (!silent) {
+        toast("通知已标记为已读", "success");
+      }
       router.refresh();
+      return true;
     } catch {
-      toast("标记已读失败，请稍后再试", "error");
+      if (!silent) {
+        toast("标记已读失败，请稍后再试", "error");
+      }
+      return false;
     } finally {
       setLoadingId(null);
     }
+  }
+
+  async function openNotification(
+    event: MouseEvent<HTMLAnchorElement>,
+    item: NotificationItem
+  ) {
+    if (item.isRead) {
+      return;
+    }
+
+    event.preventDefault();
+    const marked = await markAsRead(item.id, true);
+
+    if (!marked) {
+      toast("通知已打开，但标记已读失败", "error");
+    }
+
+    router.push(item.linkUrl);
   }
 
   async function markAllAsRead() {
@@ -140,12 +166,14 @@ export default function NotificationList({
 
       <div className="flex flex-col gap-4">
         {items.map((item) => (
-          <article
+          <Link
             key={item.id}
+            href={item.linkUrl}
+            onClick={(event) => openNotification(event, item)}
             className={
               item.isRead
-                ? "rounded-3xl border border-white/10 bg-black/30 p-5"
-                : "rounded-3xl border border-rose-300/30 bg-rose-500/10 p-5 shadow-lg shadow-rose-950/20"
+                ? "block rounded-3xl border border-white/10 bg-black/30 p-5 transition hover:border-white/20 hover:bg-white/[0.04]"
+                : "block rounded-3xl border border-rose-300/30 bg-rose-500/10 p-5 shadow-lg shadow-rose-950/20 transition hover:border-rose-300/50 hover:bg-rose-500/15"
             }
           >
             <div className="mb-4 flex flex-wrap items-start justify-between gap-4">
@@ -166,23 +194,15 @@ export default function NotificationList({
                   </span>
                 </div>
 
-                <Link
-                  href={item.linkUrl}
-                  className="text-xl font-bold text-white transition hover:text-rose-100"
-                >
+                <h3 className="text-xl font-bold text-white transition hover:text-rose-100">
                   {item.title}
-                </Link>
+                </h3>
               </div>
 
-              {!item.isRead && (
-                <button
-                  type="button"
-                  onClick={() => markAsRead(item.id)}
-                  disabled={loadingId === item.id}
-                  className="rounded-full bg-white px-5 py-2 text-sm font-medium text-black transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:bg-zinc-500"
-                >
-                  {loadingId === item.id ? "处理中..." : "标记已读"}
-                </button>
+              {!item.isRead && loadingId === item.id && (
+                <span className="rounded-full bg-white px-5 py-2 text-sm font-medium text-black">
+                  打开中...
+                </span>
               )}
             </div>
 
@@ -190,13 +210,10 @@ export default function NotificationList({
               {item.content}
             </p>
 
-            <Link
-              href={item.linkUrl}
-              className="text-sm text-zinc-400 underline transition hover:text-white"
-            >
+            <span className="text-sm text-zinc-400 underline transition hover:text-white">
               查看相关作品
-            </Link>
-          </article>
+            </span>
+          </Link>
         ))}
       </div>
     </section>
