@@ -85,6 +85,9 @@ Completed:
 * Card-level like / favorite controls
 * About page powered by site settings
 * Homepage background image and Hero image configurable from site settings
+* Payment preflight cleanup
+* Centralized simulated payment finalization
+* PAYMENT_FLOW.md documentation
 
 ## Important Existing Files
 
@@ -142,6 +145,8 @@ Orders and purchases:
 * app/api/orders/[id]/cancel/route.ts
 * app/dashboard/orders/page.tsx
 * app/dashboard/purchases/page.tsx
+* lib/payment.ts
+* PAYMENT_FLOW.md
 
 Profile and avatar:
 
@@ -258,29 +263,22 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-Site settings visual assets phase 1.
+Payment preflight cleanup phase 1.
 
 Implemented:
 
-* SiteSetting homeBackgroundImage and homeHeroImage fields
-* Dashboard site settings can save homepage background and Hero image URLs
-* Dashboard site settings can upload homepage background and Hero image files
-* Dashboard site settings can clear homepage background and Hero image values
-* Site settings API supports multipart image uploads under public/uploads/site-settings
-* Homepage reads configured visual assets with dark overlay and responsive Hero visual
-* Interaction system cleanup remains completed, including comment replies, notifications, likes, favorites, card interactions, avatar menu, and admin interaction notifications
+* PayOrderButton countdown lint issue fixed without changing behavior
+* Payment success handling centralized in lib/payment.ts finalizePaidOrder
+* Simulated payment endpoint calls finalizePaidOrder
+* Purchase creation remains behind backend-confirmed payment success
+* Repeated payment calls are idempotent and do not duplicate Purchase or admin purchase notifications
+* PAYMENT_FLOW.md documents current simulated flow and future EPAY boundaries
+* Site settings visual assets phase 1 remains completed
 
 ## Recommended Next Task
 
 Next task:
-Payment system preflight cleanup, or favicon / site icon handling.
-
-Suggested payment preflight cleanup:
-
-1. Review simulated payment boundaries
-2. Prepare EPAY callback route shape
-3. Confirm order status transitions and idempotency
-4. Keep Purchase creation behind verified payment success
+Favicon / site icon handling, or Email system preflight.
 
 Suggested favicon / site icon handling:
 
@@ -288,20 +286,26 @@ Suggested favicon / site icon handling:
 2. Decide manual replacement or later upload flow
 3. Document cache behavior and recommended image formats
 
+Suggested email system preflight:
+
+1. Review registration and login account boundaries
+2. Draft email verification code model
+3. Draft password reset route and token lifecycle
+4. Keep email sending abstracted behind a local service helper
+
 ## Later Roadmap
 
-After site settings visual assets phase 1:
+After payment preflight cleanup phase 1:
 
-1. Payment system preflight and real payment integration prep
-2. Favicon / site icon handling
+1. Favicon / site icon handling
 
    * manual replacement first, upload flow can be delayed
-3. Email system:
+2. Email system:
 
    * email verification
    * password reset
    * email notification preferences
-4. Real payment integration:
+3. Real payment integration:
 
    * EPAY order creation
    * notify_url callback
@@ -309,7 +313,7 @@ After site settings visual assets phase 1:
    * providerTradeNo
    * paymentType
    * mark Order as PAID only after verified backend callback
-5. Deployment:
+4. Deployment:
 
    * production database
    * HTTPS
@@ -928,3 +932,59 @@ After site settings visual assets phase 1:
 * 额外执行 npm run lint 时仍被旧的 components/PayOrderButton.tsx 倒计时 effect lint 问题阻塞；该问题不是本轮站点设置改动引入，本轮未改无关文件
 
 推荐下一步：支付系统前置整理，或 favicon / 站点图标处理
+
+---
+
+## Update Record: Payment Preflight Cleanup Phase 1
+
+本次完成：
+
+* 支付系统前置整理第一轮
+* 修复 PayOrderButton 倒计时 effect lint 问题
+* 抽取 finalizePaidOrder 支付成功收口逻辑
+* 模拟支付接口改为调用 finalizePaidOrder
+* 新增 PAYMENT_FLOW.md 支付流程文档
+
+修改过的文件：
+
+* components/PayOrderButton.tsx
+* app/api/orders/[id]/pay/route.ts
+* lib/payment.ts
+* PAYMENT_FLOW.md
+* CODEX_CONTEXT.md
+
+新增的支付服务函数：
+
+* lib/payment.ts finalizePaidOrder
+  * 订单已 PAID 时幂等返回，不重复 Purchase / 通知
+  * PENDING -> PAID 时写入 paidAt / providerTradeNo / paymentType
+  * 创建或更新 Purchase
+  * 首次支付成功后创建 POST_PURCHASED 管理员通知
+  * 通知失败不影响支付成功主流程
+
+新增的文档：
+
+* PAYMENT_FLOW.md
+
+修复的 lint 问题：
+
+* PayOrderButton 倒计时不再在 effect 内同步 setState
+* npm run lint 不再被 PayOrderButton 阻塞
+
+测试结果：
+
+* npx prisma generate 成功
+* npx tsc --noEmit 通过
+* npm run lint 通过（仍有既有 img 性能 warnings，0 errors）
+* npm run build 通过
+* 生产服务 HTTP 回归通过：创建待支付订单、支付成功、付费内容解锁、Purchase 只创建一次、重复支付不重复 Purchase、不重复管理员通知、已支付订单不能取消、未支付订单可以取消、后台订单页和购买权限页可访问
+* 全局扫描 app/components/lib/prisma 未发现新增 alert/window.confirm 或用户可见“买断”文案
+
+已知问题：
+
+* 暂无新的功能问题
+* 订单过期目前仍是访问订单页或创建订单 / 支付时顺手处理，没有独立后台定时任务；已在 PAYMENT_FLOW.md 保持为后续边界
+
+推荐下一步：
+
+* Favicon / site icon handling，或者 Email system preflight

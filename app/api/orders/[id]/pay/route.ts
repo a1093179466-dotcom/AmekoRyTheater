@@ -1,6 +1,6 @@
-import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
-import { createAdminNotifications } from "@/lib/notifications";
+import { finalizePaidOrder, PaymentFlowError } from "@/lib/payment";
+import { prisma } from "@/lib/prisma";
 
 type RouteContext = {
   params: Promise<{
@@ -9,24 +9,12 @@ type RouteContext = {
 };
 
 /**
- * 模拟支付 API
+ * 模拟支付 API。
  *
- * 路径：
- * POST /api/orders/[id]/pay
- *
- * 当前阶段：
- * 点击“模拟支付完成”后：
- * 1. 把 Order 状态改成 PAID
- * 2. 创建或更新 Purchase
- * 3. 用户获得该作品的永久访问权限
- *
- * 以后接真实支付时：
- * 这个接口会被真实支付平台的回调逻辑替代。
+ * 当前仍然不接真实支付，只把“支付成功后的收口动作”集中到
+ * finalizePaidOrder，方便后续 EPAY notify_url 验签成功后复用。
  */
-export async function POST(
-  _request: Request,
-  context: RouteContext
-) {
+export async function POST(_request: Request, context: RouteContext) {
   try {
     const currentUser = await getCurrentUser();
 
@@ -61,8 +49,9 @@ export async function POST(
       where: {
         id: orderId,
       },
-      include: {
-        post: true,
+      select: {
+        id: true,
+        userId: true,
       },
     });
 
@@ -91,110 +80,35 @@ export async function POST(
       );
     }
 
-    if (order.status === "PAID") {
-      return Response.json({
-        success: true,
-        message: "订单已经支付过",
-        order,
-      });
-    }
-
-    if (order.status === "CANCELLED") {
-      return Response.json(
-        {
-          success: false,
-          message: "订单已取消，不能支付",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-    // 如果订单已经超过过期时间，则自动取消，不能再支付
-    if (order.expiresAt && order.expiresAt <= new Date()) {
-      const cancelledOrder = await prisma.order.update({
-        where: {
-          id: order.id,
-        },
-        data: {
-          status: "CANCELLED",
-        },
-      });
-
-      return Response.json(
-        {
-          success: false,
-          message: "订单已超时取消，请重新下单",
-          order: cancelledOrder,
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-    if (!order.post.isPaid) {
-      return Response.json(
-        {
-          success: false,
-          message: "免费作品不需要支付",
-        },
-        {
-          status: 400,
-        }
-      );
-    }
-
-    const paidAt = new Date();
-
-    // 使用事务保证：
-    // 订单支付成功 和 购买权限创建 要么一起成功，要么一起失败。
-    const paidOrder = await prisma.$transaction(async (tx) => {
-      const updatedOrder = await tx.order.update({
-        where: {
-          id: order.id,
-        },
-        data: {
-          status: "PAID",
-          paidAt,
-        },
-      });
-
-      await tx.purchase.upsert({
-        where: {
-          userId_postId: {
-            userId: order.userId,
-            postId: order.postId,
-          },
-        },
-        create: {
-          userId: order.userId,
-          postId: order.postId,
-          amountPaid: order.amount,
-          status: "PAID",
-        },
-        update: {
-          amountPaid: order.amount,
-          status: "PAID",
-        },
-      });
-
-      return updatedOrder;
-    });
-
-    await createAdminNotifications({
+    const result = await finalizePaidOrder({
+      orderId: order.id,
       actorUserId: currentUser.id,
-      type: "POST_PURCHASED",
-      title: "作品被购买了",
-      content: `用户 ${currentUser.name} 购买了《${order.post.title}》`,
-      linkUrl: `/gallery/${order.postId}`,
+      paymentType: "SIMULATED",
+      providerTradeNo: `simulated_${order.id}_${Date.now()}`,
     });
 
     return Response.json({
       success: true,
-      message: "模拟支付成功，作品已解锁",
-      order: paidOrder,
+      message: result.alreadyPaid
+        ? "订单已经支付过"
+        : "模拟支付成功，作品已解锁",
+      order: result.order,
+      purchase: result.purchase,
     });
   } catch (error) {
+    if (error instanceof PaymentFlowError) {
+      return Response.json(
+        {
+          success: false,
+          message: error.message,
+          order: error.order,
+        },
+        {
+          status: error.status,
+        }
+      );
+    }
+
     console.error("模拟支付失败：", error);
 
     return Response.json(
