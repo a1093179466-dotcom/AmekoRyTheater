@@ -104,6 +104,13 @@ export default async function ProfilePage() {
     },
   });
 
+  const unreadNotificationCount = await prisma.notification.count({
+    where: {
+      userId: user.id,
+      isRead: false,
+    },
+  });
+
   const pendingOrderCount = orders.filter(
     (order) => order.status === "PENDING"
   ).length;
@@ -264,6 +271,33 @@ export default async function ProfilePage() {
                 <p className="mt-1 text-sm text-zinc-400">
                   查看收藏过的作品
                 </p>
+              </Link>
+
+              <Link
+                href="/profile/notifications"
+                className="mt-3 block rounded-2xl border border-amber-300/20 bg-amber-500/10 p-4 transition hover:border-amber-300/40 hover:bg-amber-500/15"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-medium uppercase tracking-[0.25em] text-amber-300">
+                      Notifications
+                    </p>
+
+                    <p className="mt-2 text-lg font-bold text-white">
+                      我的通知
+                    </p>
+
+                    <p className="mt-1 text-sm text-zinc-400">
+                      查看评论回复通知
+                    </p>
+                  </div>
+
+                  {unreadNotificationCount > 0 && (
+                    <span className="rounded-full border border-amber-300/30 bg-amber-950/30 px-3 py-1 text-xs text-amber-100">
+                      {unreadNotificationCount}
+                    </span>
+                  )}
+                </div>
               </Link>
             </aside>
 

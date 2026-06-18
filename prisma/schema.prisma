@@ -41,6 +41,7 @@ model User {
   purchases    Purchase[]
   favorites    Favorite[]
   likes        Like[]
+  notifications Notification[]
   avatarUrl String?
 }
 
@@ -218,6 +219,23 @@ model Like {
   @@unique([userId, postId])
   @@index([userId])
   @@index([postId])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  title     String
+  content   String
+  linkUrl   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
 }
 
 model Order {

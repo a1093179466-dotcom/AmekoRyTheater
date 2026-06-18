@@ -569,3 +569,87 @@ After gallery image deletion:
 * 暂无
 
 推荐下一步：站内通知系统第一轮，或者站点设置第二阶段
+
+---
+
+## Update Record: Notifications Phase 1
+
+本次完成：站内通知系统第一轮
+
+修改过的文件：
+* prisma/schema.prisma
+* app/api/comments/route.ts
+* app/api/notifications/[id]/read/route.ts
+* app/api/notifications/read-all/route.ts
+* app/profile/notifications/page.tsx
+* app/profile/page.tsx
+* components/NotificationList.tsx
+* CODEX_CONTEXT.md
+
+新增的 Prisma 模型：
+* Notification
+  * id
+  * userId
+  * type
+  * title
+  * content
+  * linkUrl
+  * isRead
+  * createdAt
+  * user relation，onDelete Cascade
+  * @@index([userId])
+  * @@index([isRead])
+  * @@index([createdAt])
+
+新增的 API：
+* POST /api/notifications/[id]/read
+  * 登录用户标记自己的单条通知为已读
+  * 不能标记别人的通知
+* POST /api/notifications/read-all
+  * 登录用户标记自己的全部未读通知为已读
+  * 返回 updatedCount
+
+修改的 API：
+* POST /api/comments
+  * 创建回复成功后，为被回复评论作者创建 COMMENT_REPLY 通知
+  * 回复者回复自己时不创建通知
+  * 父评论没有 userId 时不创建通知
+  * 通知创建失败只打印错误，不影响回复成功
+
+新增/修改的页面和组件：
+* app/profile/notifications/page.tsx
+  * 登录后可访问“我的通知”
+  * 按 createdAt desc 显示通知列表
+  * 显示标题、内容、时间、已读/未读状态
+  * 提供返回个人中心入口
+* components/NotificationList.tsx
+  * 支持单条标记已读
+  * 支持全部标记已读
+  * 使用 FeedbackProvider toast，不使用 alert/window.confirm
+* app/profile/page.tsx
+  * 个人中心增加“我的通知”入口
+  * 显示未读数量
+
+测试结果：
+* npx prisma db push 成功
+* npx prisma generate 成功
+* npx tsc --noEmit 通过
+* npm run lint -- app/api/comments/route.ts app/api/notifications/[id]/read/route.ts app/api/notifications/read-all/route.ts app/profile/notifications/page.tsx components/NotificationList.tsx app/profile/page.tsx prisma/schema.prisma 通过；prisma/schema.prisma 被 ESLint 忽略并产生 warning，无错误
+* npm run dev 成功启动，/gallery 返回 200
+* 未登录访问 /profile/notifications 返回 307 登录跳转，没有 500
+* 用户 A 创建一级评论成功
+* 用户 B 回复用户 A 的评论后，为用户 A 创建 COMMENT_REPLY 通知
+* 通知 linkUrl 指向 /gallery/{postId}
+* 用户 B 回复自己的评论时，不生成通知
+* 用户 A 访问 /profile/notifications 返回 200，页面响应包含通知标题和内容
+* 通知 linkUrl 对应作品详情页返回 200
+* 普通用户不能标记别人的通知，返回 403
+* 单条标记已读成功，并持久化 isRead=true
+* 全部标记已读成功，未读数归零
+* 评论回复、收藏 API、点赞 API 回归通过
+* 测试创建的临时用户、会话、评论和通知已清理
+
+已知问题：
+* 暂无
+
+推荐下一步：互动系统收尾检查，或站点设置第二阶段

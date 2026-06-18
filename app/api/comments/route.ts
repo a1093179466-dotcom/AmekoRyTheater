@@ -103,6 +103,7 @@ export async function POST(request: Request) {
     }
 
     let parentId: number | null = null;
+    let notificationTargetUserId: number | null = null;
 
     if (requestedParentId) {
       const parentComment = await prisma.comment.findUnique({
@@ -113,6 +114,7 @@ export async function POST(request: Request) {
           id: true,
           postId: true,
           parentId: true,
+          userId: true,
         },
       });
 
@@ -141,6 +143,7 @@ export async function POST(request: Request) {
       }
 
       parentId = parentComment.parentId ?? parentComment.id;
+      notificationTargetUserId = parentComment.userId;
     }
 
     const comment = await prisma.comment.create({
@@ -169,6 +172,25 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    if (parentId && notificationTargetUserId && notificationTargetUserId !== user.id) {
+      try {
+        const summary =
+          content.length > 80 ? `${content.slice(0, 80)}...` : content;
+
+        await prisma.notification.create({
+          data: {
+            userId: notificationTargetUserId,
+            type: "COMMENT_REPLY",
+            title: "你的评论收到了回复",
+            content: `${user.name} 回复了你：${summary}`,
+            linkUrl: `/gallery/${post.id}`,
+          },
+        });
+      } catch (notificationError) {
+        console.error("创建评论回复通知失败：", notificationError);
+      }
+    }
 
     return Response.json({
       success: true,
