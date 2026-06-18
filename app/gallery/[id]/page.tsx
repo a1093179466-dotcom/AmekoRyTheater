@@ -9,6 +9,7 @@ import CommentSection from "@/components/CommentSection";
 import PurchaseButton from "@/components/PurchaseButton";
 import PostStatusBadges from "@/components/PostStatusBadges";
 import PostImageGallery from "@/components/PostImageGallery";
+import FavoriteButton from "@/components/FavoriteButton";
 type PageProps = {
   params: Promise<{
     id: string;
@@ -135,6 +136,35 @@ export default async function PostDetailPage({ params }: PageProps) {
   }
 
   const isNotice = post.type === "NOTICE";
+
+  let favoriteCount = 0;
+  let isFavorited = false;
+
+  if (!isNotice) {
+    const [count, favorite] = await Promise.all([
+      prisma.favorite.count({
+        where: {
+          postId: post.id,
+        },
+      }),
+      currentUser
+        ? prisma.favorite.findUnique({
+            where: {
+              userId_postId: {
+                userId: currentUser.id,
+                postId: post.id,
+              },
+            },
+            select: {
+              id: true,
+            },
+          })
+        : Promise.resolve(null),
+    ]);
+
+    favoriteCount = count;
+    isFavorited = Boolean(favorite);
+  }
 
   const canViewPaidContent =
     !post.isPaid ||
@@ -377,6 +407,17 @@ export default async function PostDetailPage({ params }: PageProps) {
                 <h2 className="mb-4 text-xl font-bold">
                   内容信息
                 </h2>
+
+                {!isNotice && (
+                  <div className="mb-6">
+                    <FavoriteButton
+                      postId={post.id}
+                      initialFavorited={isFavorited}
+                      initialFavoriteCount={favoriteCount}
+                      isLoggedIn={Boolean(currentUser)}
+                    />
+                  </div>
+                )}
 
                 <div className="flex flex-col gap-3 text-sm text-zinc-400">
                   <div className="flex justify-between gap-4">

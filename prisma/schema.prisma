@@ -39,6 +39,7 @@ model User {
   sessions     Session[]
   comments     Comment[]
   purchases    Purchase[]
+  favorites    Favorite[]
   avatarUrl String?
 }
 
@@ -127,6 +128,7 @@ model Post {
   purchases  Purchase[]
   orders       Order[]
   images PostImage[]
+  favorites Favorite[]
 }
 
 model Comment {
@@ -179,6 +181,20 @@ model Purchase {
 
   // 同一个用户对同一篇帖子只能购买一次
   @@unique([userId, postId])
+}
+
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  postId    Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId])
+  @@index([postId])
 }
 
 model Order {

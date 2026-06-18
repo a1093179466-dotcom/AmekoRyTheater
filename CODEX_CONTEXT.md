@@ -339,3 +339,66 @@ After gallery image deletion:
 已知问题：暂无
 
 推荐下一步：作品收藏系统第一轮
+
+---
+
+## Update Record: Post Favorite Toggle
+
+本次完成：作品收藏系统第一轮
+
+修改过的文件：
+
+* prisma/schema.prisma
+* app/api/favorites/route.ts
+* app/gallery/[id]/page.tsx
+* components/FavoriteButton.tsx
+* CODEX_CONTEXT.md
+
+新增的 Prisma 模型：
+
+* Favorite
+  * id
+  * userId
+  * postId
+  * createdAt
+  * user relation，onDelete Cascade
+  * post relation，onDelete Cascade
+  * @@unique([userId, postId])
+  * @@index([userId])
+  * @@index([postId])
+
+新增的 API：
+
+* POST /api/favorites
+  * 登录用户收藏 WORK 作品
+  * 重复收藏保持幂等，不报错
+  * NOTICE 不允许收藏
+* DELETE /api/favorites
+  * 登录用户取消收藏
+  * 取消不存在的收藏保持幂等，不报错
+
+新增的组件：
+
+* components/FavoriteButton.tsx
+  * 显示已收藏 / 未收藏状态
+  * 显示收藏数
+  * 点击切换收藏状态
+  * loading 状态防止重复点击
+  * 使用 FeedbackProvider toast，不使用 alert/window.confirm
+
+测试结果：
+
+* npx prisma db push 成功
+* npx prisma generate 成功
+* npx prisma validate 通过
+* 本次相关文件 eslint 通过
+* 未登录 POST /api/favorites 返回 401 和友好 JSON，不会 500
+* 收藏 API 使用 upsert / deleteMany，重复收藏和取消不存在收藏均保持幂等
+* 作品详情页只在 WORK 内容显示 FavoriteButton，NOTICE 公告不显示
+* 发现已有 Next dev server 在 localhost:3000 运行；未强制停止现有服务
+
+已知问题：
+
+* 全量 npx tsc --noEmit 仍被既有旧问题阻塞：app/api/posts/[id]/edit/page.tsx:77 传给 EditPostForm 的 post 字段不完整。该问题不是本次收藏系统引入。
+
+推荐下一步：个人中心“我的收藏”列表
