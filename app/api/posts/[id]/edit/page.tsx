@@ -39,6 +39,13 @@ export default async function EditPostPage({ params }: PageProps) {
     where: {
       id: postId,
     },
+    include: {
+      images: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
+    },
   });
 
   if (!post) {
@@ -73,16 +80,7 @@ export default async function EditPostPage({ params }: PageProps) {
         编辑帖子
       </h1>
 
-      <EditPostForm
-        post={{
-          id: post.id,
-          title: post.title,
-          excerpt: post.excerpt,
-          content: post.content,
-          coverImage: post.coverImage,
-          price: post.price,
-        }}
-      />
+      <EditPostForm post={post} />
     </main>
   );
 }

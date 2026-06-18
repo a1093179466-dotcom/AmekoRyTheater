@@ -402,3 +402,35 @@ After gallery image deletion:
 * 全量 npx tsc --noEmit 仍被既有旧问题阻塞：app/api/posts/[id]/edit/page.tsx:77 传给 EditPostForm 的 post 字段不完整。该问题不是本次收藏系统引入。
 
 推荐下一步：个人中心“我的收藏”列表
+
+---
+
+## Update Record: Profile Favorite List
+
+本次完成：
+* 修复 app/api/posts/[id]/edit/page.tsx 传给 EditPostForm 的 post 字段不完整导致的 TypeScript 阻塞
+* 新增个人中心“我的收藏”列表页面
+* 在个人中心侧栏新增“我的收藏”入口
+
+修改过的文件：
+* app/api/posts/[id]/edit/page.tsx
+* app/profile/page.tsx
+* app/profile/favorites/page.tsx
+* CODEX_CONTEXT.md
+
+新增页面：
+* app/profile/favorites/page.tsx
+
+测试结果：
+* npx prisma generate 成功
+* npx tsc --noEmit 通过
+* npm run lint -- app/profile/favorites/page.tsx app/profile/page.tsx app/api/posts/[id]/edit/page.tsx 通过
+* npm run dev 检查时发现同项目已有 Next dev server 记录；未登录访问 /profile/favorites 返回 307 登录跳转，没有 500
+* 使用本地有效登录态访问 /profile/favorites 返回 200
+* 源码检查确认 /profile 页面已增加“我的收藏”入口
+* 收藏列表按 Favorite.createdAt desc 查询当前用户收藏的 WORK 作品
+
+已知问题：
+* 暂无
+
+推荐下一步：作品点赞系统第一轮

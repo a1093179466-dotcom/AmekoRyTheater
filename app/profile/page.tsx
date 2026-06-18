@@ -248,6 +248,23 @@ export default async function ProfilePage() {
                   </p>
                 </div>
               </div>
+
+              <Link
+                href="/profile/favorites"
+                className="mt-4 block rounded-2xl border border-rose-300/20 bg-rose-500/10 p-4 transition hover:border-rose-300/40 hover:bg-rose-500/15"
+              >
+                <p className="text-sm font-medium uppercase tracking-[0.25em] text-rose-300">
+                  Favorites
+                </p>
+
+                <p className="mt-2 text-lg font-bold text-white">
+                  我的收藏
+                </p>
+
+                <p className="mt-1 text-sm text-zinc-400">
+                  查看收藏过的作品
+                </p>
+              </Link>
             </aside>
 
             <div className="flex flex-col gap-8">
