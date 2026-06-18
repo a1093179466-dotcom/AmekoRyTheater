@@ -731,6 +731,55 @@ After gallery image deletion:
 
 ---
 
+## Update Record: Card Interactions, About Page, and Comment Admin Notifications
+
+本次完成：
+* 首页 / 作品列表 / 我的收藏里的作品卡片增加点赞和收藏入口
+* 作品详情页“内容信息”里的点赞 / 收藏改为小型图标按钮
+* 点赞使用大拇指图标，收藏使用星星图标，并显示当前数量
+* 关于页接入站点设置里的关于内容、联系邮箱和外部链接
+* 管理员登录时可从关于页进入后台站点设置编辑关于内容
+* 用户直接评论帖子时，管理员会收到 POST_COMMENTED 站内通知
+
+修改过的文件：
+* app/page.tsx
+* app/gallery/page.tsx
+* app/gallery/[id]/page.tsx
+* app/profile/favorites/page.tsx
+* app/about/page.tsx
+* app/api/comments/route.ts
+* components/PostCard.tsx
+* components/LikeButton.tsx
+* components/FavoriteButton.tsx
+* components/SiteSettingsForm.tsx
+* CODEX_CONTEXT.md
+
+新增或修改的交互：
+* PostCard 支持展示点赞数 / 收藏数 / 当前用户状态
+* LikeButton / FavoriteButton 改为紧凑图标按钮，可复用于卡片和详情侧栏
+* 未登录用户点击卡片上的点赞 / 收藏仍使用 FeedbackProvider toast 提示登录
+* NOTICE 公告卡片不显示点赞 / 收藏按钮
+
+新增或修改的通知逻辑：
+* POST /api/comments 创建一级评论成功后，会给所有非本人 ADMIN 用户发送 POST_COMMENTED 通知
+* 回复评论的 COMMENT_REPLY 通知逻辑保持不变
+* 通知创建失败不影响评论主流程
+
+测试结果：
+* npx tsc --noEmit 通过
+* npm run lint -- app/about/page.tsx app/api/comments/route.ts app/gallery/[id]/page.tsx app/gallery/page.tsx app/page.tsx app/profile/favorites/page.tsx components/FavoriteButton.tsx components/LikeButton.tsx components/PostCard.tsx components/SiteSettingsForm.tsx 通过
+* npm run build 通过，/、/about、/gallery、/gallery/[id]、/profile/favorites 等页面编译成功
+* npm run dev 前台启动成功并显示 Ready
+* 本次相关文件未新增 alert/window.confirm
+* 本次相关文件未新增用户可见“买断”文案
+
+已知问题：
+* 当前环境隐藏后台启动 dev server 不稳定，实际页面请求验证改由 npm run build 和前台 npm run dev Ready 覆盖
+
+推荐下一步：互动系统收尾检查
+
+---
+
 ## Update Record: Navbar Menu and Notification Read Interaction Fix
 
 本次完成：

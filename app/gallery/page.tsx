@@ -4,6 +4,7 @@ import PostCard from "@/components/PostCard";
 
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,8 @@ export const dynamic = "force-dynamic";
  * - 草稿
  */
 export default async function GalleryPage() {
+  const currentUser = await getCurrentUser();
+
   const posts = await prisma.post.findMany({
     where: {
       isPublished: true,
@@ -39,6 +42,24 @@ export default async function GalleryPage() {
       _count: {
         select: {
           comments: true,
+          favorites: true,
+          likes: true,
+        },
+      },
+      favorites: {
+        where: {
+          userId: currentUser?.id ?? -1,
+        },
+        select: {
+          id: true,
+        },
+      },
+      likes: {
+        where: {
+          userId: currentUser?.id ?? -1,
+        },
+        select: {
+          id: true,
         },
       },
     },
@@ -121,6 +142,11 @@ export default async function GalleryPage() {
                   isPaid={post.isPaid}
                   isPinned={post.isPinned}
                   commentCount={post._count.comments}
+                  likeCount={post._count.likes}
+                  favoriteCount={post._count.favorites}
+                  isLiked={post.likes.length > 0}
+                  isFavorited={post.favorites.length > 0}
+                  isLoggedIn={Boolean(currentUser)}
                   coverImage={post.coverImage}
                 />
               ))}

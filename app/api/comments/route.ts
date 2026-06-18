@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { createAdminNotifications } from "@/lib/notifications";
 
 export const runtime = "nodejs";
 
@@ -87,6 +88,7 @@ export async function POST(request: Request) {
       },
       select: {
         id: true,
+        title: true,
       },
     });
 
@@ -173,11 +175,11 @@ export async function POST(request: Request) {
       },
     });
 
+    const summary =
+      content.length > 80 ? `${content.slice(0, 80)}...` : content;
+
     if (parentId && notificationTargetUserId && notificationTargetUserId !== user.id) {
       try {
-        const summary =
-          content.length > 80 ? `${content.slice(0, 80)}...` : content;
-
         await prisma.notification.create({
           data: {
             userId: notificationTargetUserId,
@@ -190,6 +192,16 @@ export async function POST(request: Request) {
       } catch (notificationError) {
         console.error("创建评论回复通知失败：", notificationError);
       }
+    }
+
+    if (!parentId) {
+      await createAdminNotifications({
+        actorUserId: user.id,
+        type: "POST_COMMENTED",
+        title: "帖子收到了新的评论",
+        content: `用户 ${user.name} 评论了《${post.title}》：${summary}`,
+        linkUrl: `/gallery/${post.id}`,
+      });
     }
 
     return Response.json({

@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import PostCard from "@/components/PostCard";
@@ -6,11 +8,15 @@ import SiteTicker from "@/components/SiteTicker";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/format";
 import { getSiteSetting } from "@/lib/siteSetting";
+import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const setting = await getSiteSetting();
+  const [setting, currentUser] = await Promise.all([
+    getSiteSetting(),
+    getCurrentUser(),
+  ]);
 
   // 首页只展示已发布内容。
   // 置顶优先，其次按发布时间倒序。
@@ -30,6 +36,24 @@ export default async function Home() {
       _count: {
         select: {
           comments: true,
+          favorites: true,
+          likes: true,
+        },
+      },
+      favorites: {
+        where: {
+          userId: currentUser?.id ?? -1,
+        },
+        select: {
+          id: true,
+        },
+      },
+      likes: {
+        where: {
+          userId: currentUser?.id ?? -1,
+        },
+        select: {
+          id: true,
         },
       },
     },
@@ -67,19 +91,19 @@ export default async function Home() {
             </p>
 
             <div className="mt-8 flex flex-wrap gap-4">
-              <a
+              <Link
                 href="/gallery"
                 className="rounded-full bg-white px-6 py-3 font-medium text-black hover:bg-rose-100 transition"
               >
                 浏览作品
-              </a>
+              </Link>
 
-              <a
+              <Link
                 href="/notices"
                 className="rounded-full border border-white/15 bg-white/5 px-6 py-3 font-medium text-white hover:bg-white/10 transition"
               >
                 查看公告
-              </a>
+              </Link>
             </div>
           </div>
 
@@ -96,12 +120,12 @@ export default async function Home() {
                   </h2>
                 </div>
 
-                <a
+                <Link
                   href={`/gallery/${featuredPost.id}`}
                   className="hidden rounded-full border border-white/15 px-5 py-2 text-sm text-zinc-300 hover:bg-white/10 hover:text-white transition md:block"
                 >
                   查看详情
-                </a>
+                </Link>
               </div>
 
               <div className="flex flex-wrap justify-center gap-6 md:justify-start">
@@ -116,6 +140,11 @@ export default async function Home() {
                   isPaid={featuredPost.isPaid}
                   isPinned={featuredPost.isPinned}
                   commentCount={featuredPost._count.comments}
+                  likeCount={featuredPost._count.likes}
+                  favoriteCount={featuredPost._count.favorites}
+                  isLiked={featuredPost.likes.length > 0}
+                  isFavorited={featuredPost.favorites.length > 0}
+                  isLoggedIn={Boolean(currentUser)}
                   coverImage={featuredPost.coverImage}
                 />
               </div>
@@ -134,12 +163,12 @@ export default async function Home() {
                 </h2>
               </div>
 
-              <a
+              <Link
                 href="/gallery"
                 className="text-sm text-zinc-400 hover:text-white transition"
               >
                 查看全部作品 →
-              </a>
+              </Link>
             </div>
 
             {otherPosts.length === 0 ? (
@@ -161,6 +190,11 @@ export default async function Home() {
                     isPaid={post.isPaid}
                     isPinned={post.isPinned}
                     commentCount={post._count.comments}
+                    likeCount={post._count.likes}
+                    favoriteCount={post._count.favorites}
+                    isLiked={post.likes.length > 0}
+                    isFavorited={post.favorites.length > 0}
+                    isLoggedIn={Boolean(currentUser)}
                     coverImage={post.coverImage}
                   />
                 ))}

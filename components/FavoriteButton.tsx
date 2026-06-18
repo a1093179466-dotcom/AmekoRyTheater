@@ -64,32 +64,27 @@ export default function FavoriteButton({
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold text-white">收藏</p>
-          <p className="mt-1 text-xs text-zinc-500">
-            {favoriteCount} 人收藏
-          </p>
-        </div>
-
-        <span className="rounded-full border border-rose-300/20 bg-rose-950/20 px-3 py-1 text-xs text-rose-100">
-          Favorite
-        </span>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleToggleFavorite}
-        disabled={loading}
-        className={
-          favorited
-            ? "w-full rounded-full border border-rose-300/40 bg-rose-950/30 px-5 py-3 text-sm font-medium text-rose-100 transition hover:bg-rose-900/40 disabled:cursor-not-allowed disabled:opacity-60"
-            : "w-full rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-rose-100 disabled:cursor-not-allowed disabled:bg-zinc-500"
-        }
-      >
-        {loading ? "处理中..." : favorited ? "已收藏，点击取消" : "收藏作品"}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={handleToggleFavorite}
+      disabled={loading}
+      aria-label={favorited ? "取消收藏" : "收藏"}
+      title={favorited ? "取消收藏" : "收藏"}
+      className={
+        favorited
+          ? "inline-flex h-9 items-center gap-2 rounded-full border border-rose-300/40 bg-rose-950/30 px-3 text-xs font-medium text-rose-100 transition hover:bg-rose-900/40 disabled:cursor-not-allowed disabled:opacity-60"
+          : "inline-flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-zinc-300 transition hover:border-rose-300/40 hover:bg-rose-950/20 hover:text-rose-100 disabled:cursor-not-allowed disabled:opacity-60"
+      }
+    >
+      <span aria-hidden="true" className="text-sm leading-none">
+        {favorited ? "★" : "☆"}
+      </span>
+      <span className="tabular-nums">
+        {favoriteCount}
+      </span>
+      <span className="sr-only">
+        {loading ? "处理中" : favorited ? "已收藏" : "收藏"}
+      </span>
+    </button>
   );
 }

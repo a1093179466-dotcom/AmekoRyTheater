@@ -226,7 +226,7 @@ export default function SiteSettingsForm({
 
           <div className="flex flex-col gap-5">
             <label className="flex flex-col gap-2">
-              <span className="text-sm text-zinc-400">关于说明</span>
+              <span className="text-sm text-zinc-400">关于页面内容</span>
 
               <textarea
                 className="h-28 rounded-2xl bg-black/60 px-4 py-3 text-white outline-none placeholder:text-zinc-600 focus:ring-1 focus:ring-rose-300/60"

@@ -28,6 +28,16 @@ export default async function ProfileFavoritesPage() {
           _count: {
             select: {
               comments: true,
+              favorites: true,
+              likes: true,
+            },
+          },
+          likes: {
+            where: {
+              userId: user.id,
+            },
+            select: {
+              id: true,
             },
           },
         },
@@ -126,6 +136,11 @@ export default async function ProfileFavoritesPage() {
                     isPaid={favorite.post.isPaid}
                     isPinned={favorite.post.isPinned}
                     commentCount={favorite.post._count.comments}
+                    likeCount={favorite.post._count.likes}
+                    favoriteCount={favorite.post._count.favorites}
+                    isLiked={favorite.post.likes.length > 0}
+                    isFavorited={true}
+                    isLoggedIn={true}
                     coverImage={favorite.post.coverImage ?? undefined}
                   />
                 ))}

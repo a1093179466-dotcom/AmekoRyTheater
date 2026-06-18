@@ -472,18 +472,18 @@ export default async function PostDetailPage({ params }: PageProps) {
                 </h2>
 
                 {!isNotice && (
-                  <div className="mb-6 flex flex-col gap-3">
-                    <FavoriteButton
-                      postId={post.id}
-                      initialFavorited={isFavorited}
-                      initialFavoriteCount={favoriteCount}
-                      isLoggedIn={Boolean(currentUser)}
-                    />
-
+                  <div className="mb-5 flex flex-wrap items-center gap-2">
                     <LikeButton
                       postId={post.id}
                       initialLiked={isLiked}
                       initialLikeCount={likeCount}
+                      isLoggedIn={Boolean(currentUser)}
+                    />
+
+                    <FavoriteButton
+                      postId={post.id}
+                      initialFavorited={isFavorited}
+                      initialFavoriteCount={favoriteCount}
                       isLoggedIn={Boolean(currentUser)}
                     />
                   </div>

@@ -66,34 +66,27 @@ export default function LikeButton({
   }
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-      <div className="mb-4 flex items-center justify-between gap-4">
-        <div>
-          <p className="text-sm font-bold text-white">
-            点赞
-          </p>
-          <p className="mt-1 text-xs text-zinc-500">
-            {likeCount} 人点赞
-          </p>
-        </div>
-
-        <span className="rounded-full border border-amber-300/20 bg-amber-950/20 px-3 py-1 text-xs text-amber-100">
-          Like
-        </span>
-      </div>
-
-      <button
-        type="button"
-        onClick={handleToggleLike}
-        disabled={loading}
-        className={
-          liked
-            ? "w-full rounded-full border border-amber-300/40 bg-amber-950/30 px-5 py-3 text-sm font-medium text-amber-100 transition hover:bg-amber-900/40 disabled:cursor-not-allowed disabled:opacity-60"
-            : "w-full rounded-full bg-white px-5 py-3 text-sm font-medium text-black transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:bg-zinc-500"
-        }
-      >
-        {loading ? "处理中..." : liked ? "已点赞，点击取消" : "点赞作品"}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={handleToggleLike}
+      disabled={loading}
+      aria-label={liked ? "取消点赞" : "点赞"}
+      title={liked ? "取消点赞" : "点赞"}
+      className={
+        liked
+          ? "inline-flex h-9 items-center gap-2 rounded-full border border-amber-300/40 bg-amber-950/30 px-3 text-xs font-medium text-amber-100 transition hover:bg-amber-900/40 disabled:cursor-not-allowed disabled:opacity-60"
+          : "inline-flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 text-xs font-medium text-zinc-300 transition hover:border-amber-300/40 hover:bg-amber-950/20 hover:text-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
+      }
+    >
+      <span aria-hidden="true" className="text-sm leading-none">
+        👍
+      </span>
+      <span className="tabular-nums">
+        {likeCount}
+      </span>
+      <span className="sr-only">
+        {loading ? "处理中" : liked ? "已点赞" : "点赞"}
+      </span>
+    </button>
   );
 }
