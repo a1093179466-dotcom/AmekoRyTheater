@@ -1,19 +1,32 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
+export const runtime = "nodejs";
+
+function parseOptionalParentId(value: unknown) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+
+  const parentId = Number(value);
+
+  if (!Number.isInteger(parentId) || parentId <= 0) {
+    return undefined;
+  }
+
+  return parentId;
+}
+
 /**
- * 创建评论 API
+ * 创建评论 API。
  *
- * 现在的规则：
- * 1. 必须登录才能评论
- * 2. 评论会绑定当前登录用户的 userId
- * 3. username 使用当前用户昵称
+ * 支持一级评论和一级回复。第一轮不做多级楼中楼：
+ * 如果 parentId 指向一条回复，会自动归到原始一级评论下。
  */
 export async function POST(request: Request) {
   try {
     const user = await getCurrentUser();
 
-    // 未登录用户不能发表评论
     if (!user) {
       return Response.json(
         {
@@ -30,8 +43,9 @@ export async function POST(request: Request) {
 
     const postId = Number(body.postId);
     const content = String(body.content || "").trim();
+    const requestedParentId = parseOptionalParentId(body.parentId);
 
-    if (!postId) {
+    if (!Number.isInteger(postId) || postId <= 0) {
       return Response.json(
         {
           success: false,
@@ -55,10 +69,24 @@ export async function POST(request: Request) {
       );
     }
 
-    // 确认帖子存在，避免给不存在的帖子写评论
+    if (requestedParentId === undefined) {
+      return Response.json(
+        {
+          success: false,
+          message: "parentId 无效",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
     const post = await prisma.post.findUnique({
       where: {
         id: postId,
+      },
+      select: {
+        id: true,
       },
     });
 
@@ -74,20 +102,71 @@ export async function POST(request: Request) {
       );
     }
 
+    let parentId: number | null = null;
+
+    if (requestedParentId) {
+      const parentComment = await prisma.comment.findUnique({
+        where: {
+          id: requestedParentId,
+        },
+        select: {
+          id: true,
+          postId: true,
+          parentId: true,
+        },
+      });
+
+      if (!parentComment) {
+        return Response.json(
+          {
+            success: false,
+            message: "被回复的评论不存在",
+          },
+          {
+            status: 404,
+          }
+        );
+      }
+
+      if (parentComment.postId !== post.id) {
+        return Response.json(
+          {
+            success: false,
+            message: "不能回复其他作品下的评论",
+          },
+          {
+            status: 400,
+          }
+        );
+      }
+
+      parentId = parentComment.parentId ?? parentComment.id;
+    }
+
     const comment = await prisma.comment.create({
       data: {
         postId,
         userId: user.id,
         username: user.name,
         content,
+        parentId,
       },
       select: {
         id: true,
         postId: true,
         userId: true,
+        parentId: true,
         username: true,
         content: true,
         createdAt: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+          },
+        },
       },
     });
 

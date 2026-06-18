@@ -1,28 +1,27 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
-type RouteContext = {
+type DeleteCommentContext = {
   params: Promise<{
     id: string;
   }>;
 };
 
+export const runtime = "nodejs";
+
 /**
- * 删除评论 API
+ * 删除评论 API。
  *
- * 权限规则：
- * 1. 未登录用户不能删除评论
- * 2. 评论作者本人可以删除自己的评论
- * 3. 管理员可以删除任何评论
+ * 管理员可以删除任意评论或回复；普通用户只能删除自己的评论或回复。
+ * 删除一级评论时会同时删除它下面的一级回复，避免留下孤儿回复。
  */
 export async function DELETE(
   _request: Request,
-  context: RouteContext
+  context: DeleteCommentContext
 ) {
   try {
     const currentUser = await getCurrentUser();
 
-    // 没登录，直接拒绝
     if (!currentUser) {
       return Response.json(
         {
@@ -36,11 +35,9 @@ export async function DELETE(
     }
 
     const { id } = await context.params;
-
     const commentId = Number(id);
 
-    // 校验 URL 里的评论 ID 是否有效
-    if (Number.isNaN(commentId)) {
+    if (!Number.isInteger(commentId) || commentId <= 0) {
       return Response.json(
         {
           success: false,
@@ -52,10 +49,14 @@ export async function DELETE(
       );
     }
 
-    // 先查出评论，后面要判断这条评论是谁发的
     const comment = await prisma.comment.findUnique({
       where: {
         id: commentId,
+      },
+      select: {
+        id: true,
+        userId: true,
+        parentId: true,
       },
     });
 
@@ -74,7 +75,6 @@ export async function DELETE(
     const isAdmin = currentUser.role === "ADMIN";
     const isOwner = comment.userId === currentUser.id;
 
-    // 不是管理员，也不是评论作者本人，就不能删除
     if (!isAdmin && !isOwner) {
       return Response.json(
         {
@@ -87,15 +87,45 @@ export async function DELETE(
       );
     }
 
-    await prisma.comment.delete({
-      where: {
-        id: commentId,
-      },
-    });
+    const deletedReplyIds: number[] = [];
+
+    if (comment.parentId === null) {
+      const replies = await prisma.comment.findMany({
+        where: {
+          parentId: comment.id,
+        },
+        select: {
+          id: true,
+        },
+      });
+
+      deletedReplyIds.push(...replies.map((reply) => reply.id));
+
+      await prisma.$transaction([
+        prisma.comment.deleteMany({
+          where: {
+            parentId: comment.id,
+          },
+        }),
+        prisma.comment.delete({
+          where: {
+            id: comment.id,
+          },
+        }),
+      ]);
+    } else {
+      await prisma.comment.delete({
+        where: {
+          id: comment.id,
+        },
+      });
+    }
 
     return Response.json({
       success: true,
       message: "评论已删除",
+      deletedCommentId: comment.id,
+      deletedReplyIds,
     });
   } catch (error) {
     console.error("删除评论失败：", error);

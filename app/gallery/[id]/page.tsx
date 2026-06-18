@@ -64,6 +64,9 @@ export default async function PostDetailPage({ params }: PageProps) {
     },
     include: {
       comments: {
+        where: {
+          parentId: null,
+        },
         orderBy: {
           createdAt: "asc",
         },
@@ -74,6 +77,21 @@ export default async function PostDetailPage({ params }: PageProps) {
               name: true,
               email: true,
               avatarUrl: true,
+            },
+          },
+          replies: {
+            orderBy: {
+              createdAt: "asc",
+            },
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  avatarUrl: true,
+                },
+              },
             },
           },
         },
@@ -201,13 +219,35 @@ export default async function PostDetailPage({ params }: PageProps) {
     return {
       id: comment.id,
       postId: comment.postId,
+      parentId: comment.parentId,
       userId: comment.userId,
       username: displayName,
       avatarUrl: comment.user?.avatarUrl || null,
       content: comment.content,
       createdAt: formatDateTime(comment.createdAt),
+      replies: comment.replies.map((reply) => {
+        const replyDisplayName =
+          reply.user?.name || reply.username || "匿名用户";
+
+        return {
+          id: reply.id,
+          postId: reply.postId,
+          parentId: reply.parentId,
+          userId: reply.userId,
+          username: replyDisplayName,
+          avatarUrl: reply.user?.avatarUrl || null,
+          content: reply.content,
+          createdAt: formatDateTime(reply.createdAt),
+          replies: [],
+        };
+      }),
     };
   });
+
+  const commentCount = postComments.reduce(
+    (total, comment) => total + 1 + comment.replies.length,
+    0
+  );
 
   return (
     <main className="min-h-screen bg-[#050505] text-white">
@@ -469,7 +509,7 @@ export default async function PostDetailPage({ params }: PageProps) {
                   <div className="flex justify-between gap-4">
                     <span>评论</span>
                     <span className="text-zinc-200">
-                      {post.comments.length}
+                      {commentCount}
                     </span>
                   </div>
 

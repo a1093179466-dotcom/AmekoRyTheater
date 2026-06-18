@@ -143,6 +143,9 @@ model Comment {
   // 这里先允许为空，是为了兼容之前已经存在的测试评论
   userId    Int?
 
+  // 一级回复使用 parentId 指向被回复的顶层评论
+  parentId  Int?
+
   // 显示用用户名快照
   // 即使以后用户改昵称，旧评论也还能显示当时的名字
   username  String
@@ -157,6 +160,10 @@ model Comment {
   // 评论和用户关系
   // 如果用户被删除，评论不会强制删除，只是 userId 变为空
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+
+  @@index([parentId])
 }
 
 model Purchase {

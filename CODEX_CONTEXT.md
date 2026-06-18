@@ -499,3 +499,73 @@ After gallery image deletion:
 * 暂无
 
 推荐下一步：评论回复系统第一轮
+
+---
+
+## Update Record: Comment Replies
+
+本次完成：评论回复系统第一轮
+
+修改过的文件：
+* prisma/schema.prisma
+* app/api/comments/route.ts
+* app/api/comments/[id]/route.ts
+* app/gallery/[id]/page.tsx
+* components/CommentSection.tsx
+* CODEX_CONTEXT.md
+
+修改的 Prisma 模型：
+* Comment
+  * 新增 parentId Int?
+  * 新增 parent Comment? 自关联
+  * 新增 replies Comment[] 自关联
+  * 新增 @@index([parentId])
+  * 旧一级评论 parentId 默认为 null
+
+修改的 API：
+* POST /api/comments
+  * 支持创建一级评论
+  * 支持通过 parentId 创建一级回复
+  * 校验父评论存在且属于同一个 postId
+  * 如果 parentId 指向一条回复，会归到原始一级评论下
+  * 未登录用户不能评论或回复
+* DELETE /api/comments/[id]
+  * 管理员可以删除任意评论或回复
+  * 普通用户只能删除自己的评论或回复
+  * 删除一级评论时会同时删除其 replies
+  * 删除回复时只删除该回复
+
+修改的组件：
+* components/CommentSection.tsx
+  * 一级评论下显示回复列表
+  * 评论和回复都显示头像、用户名、时间、内容、回复按钮
+  * 有权限时显示删除按钮
+  * 点击回复后在对应评论/回复下方显示回复输入框
+  * 回复提交成功后立即加入对应一级评论的 replies
+  * 使用 FeedbackProvider toast / confirm，不使用 alert/window.confirm
+
+测试结果：
+* npx prisma db push 成功
+* npx prisma generate 成功
+* npx tsc --noEmit 通过
+* npm run lint -- app/api/comments/route.ts app/api/comments/[id]/route.ts app/gallery/[id]/page.tsx components/CommentSection.tsx prisma/schema.prisma 通过；prisma/schema.prisma 被 ESLint 忽略并产生 warning，无错误
+* npm run dev 成功启动，/gallery 返回 200
+* 未登录访问作品详情页 /gallery/6 返回 200
+* 登录用户可以发表一级评论，返回 parentId=null
+* 未登录用户回复返回 401，不会 500
+* 登录用户可以回复一级评论，回复 parentId 指向一级评论
+* 刷新 /gallery/6 后可看到回复内容
+* 普通用户删除别人的回复返回 403
+* 普通用户可以删除自己的回复
+* 管理员可以删除任意回复
+* 管理员可以删除任意一级评论
+* 删除一级评论时，其回复会被删除
+* 收藏 API 回归通过
+* 点赞 API 回归通过
+* 个人中心“我的收藏”页面 /profile/favorites 返回 200
+* 测试创建的临时用户、会话、评论和回复已清理
+
+已知问题：
+* 暂无
+
+推荐下一步：站内通知系统第一轮，或者站点设置第二阶段
