@@ -148,6 +148,13 @@ export default function UserNavMenu({
             )}
           </Link>
 
+          <Link
+            href="/profile/settings"
+            className="block rounded-xl px-3 py-2 text-zinc-300 transition hover:bg-rose-500/10 hover:text-rose-100"
+          >
+            账户设置
+          </Link>
+
           <button
             type="button"
             onClick={handleLogout}

@@ -1309,3 +1309,47 @@ After payment preflight cleanup phase 1:
 * 过期验证码校验返回“验证码已过期”。
 * 重置密码测试用户重置前有 2 条 session，成功重置后 session 数为 0，RESET_PASSWORD 验证码被 consumed。
 * 测试创建的临时用户、session 和验证码已清理。
+---
+
+## Update Record: Email Notification Preferences
+
+本次完成：
+
+* 新增 `/profile/settings` 账户设置页。
+* 个人中心侧栏新增“账户设置”入口。
+* 用户菜单新增“账户设置”入口。
+* Prisma `User` 新增邮件通知偏好字段：
+  * `emailNotifyCommentReply`，默认 true。
+  * `emailNotifyPurchase`，默认 true。
+  * `emailNotifyNewPost`，默认 false。
+* 新增 `GET /api/profile/settings` 读取当前登录用户邮件通知偏好。
+* 新增 `PATCH /api/profile/settings` 保存当前登录用户邮件通知偏好。
+* 设置页使用开关展示评论回复、购买相关、新作品发布三类邮件通知偏好。
+* 本轮只保存偏好，尚未强制把所有邮件通知发送逻辑接入事件流。
+* 更新 EMAIL_FLOW.md 中的邮件通知偏好说明。
+
+修改过的文件：
+
+* prisma/schema.prisma
+* app/api/profile/settings/route.ts
+* app/profile/settings/page.tsx
+* components/EmailNotificationSettingsForm.tsx
+* app/profile/page.tsx
+* components/UserNavMenu.tsx
+* EMAIL_FLOW.md
+* CODEX_CONTEXT.md
+
+测试结果：
+
+* npx prisma format 成功。
+* npx prisma generate 成功。
+* npx prisma db push 成功，本地 PostgreSQL 已同步新字段。
+* npx tsc --noEmit 通过。
+* npm run lint 通过（仍有既有 img 性能 warnings，0 errors）。
+* npm run build 通过，路由表包含 `/profile/settings` 和 `/api/profile/settings`。
+* 临时 next start HTTP 测试：未登录 GET `/api/profile/settings` 返回 401 和“请先登录”。
+* 临时 next start HTTP 测试：未登录访问 `/profile/settings` 返回 307，跳转 `/login`。
+* 临时 next start HTTP 测试：登录态 GET `/api/profile/settings` 返回默认偏好 true / true / false。
+* 临时 next start HTTP 测试：PATCH `/api/profile/settings` 可保存 false / false / true。
+* 临时 next start HTTP 测试：再次 GET `/api/profile/settings` 返回保存后的 false / false / true，确认刷新后可保持。
+* 测试创建的临时用户和 session 已清理。

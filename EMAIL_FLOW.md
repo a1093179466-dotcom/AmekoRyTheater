@@ -184,6 +184,24 @@ resend.emails.send({
 `REGISTER` 会检查邮箱是否已注册；已注册时返回友好错误。
 
 `RESET_PASSWORD` 不暴露邮箱是否存在。即使邮箱不存在，也返回类似“如果邮箱存在，我们会发送验证码”的成功提示，避免泄露账号存在性。
+## Email Notification Preferences
+
+账户设置页 `/profile/settings` 已提供邮件通知偏好保存能力。
+
+当前偏好字段保存在 `User` 表：
+
+* `emailNotifyCommentReply`：评论回复邮件通知，默认开启。
+* `emailNotifyPurchase`：购买相关邮件通知，默认开启。
+* `emailNotifyNewPost`：新作品发布邮件通知，默认关闭。
+
+当前 API：
+
+* `GET /api/profile/settings`：读取当前登录用户的邮件通知偏好。
+* `PATCH /api/profile/settings`：保存当前登录用户的邮件通知偏好。
+
+未登录访问设置页会跳转到 `/login`。未登录调用设置 API 会返回 401 和“请先登录”。
+
+本阶段只保存偏好，不强制接入所有邮件通知发送逻辑。后续在评论回复、购买状态变化、新作品发布等邮件发送前，应先读取对应偏好字段，再决定是否发送邮件。
 
 ## Security Rules
 
@@ -200,6 +218,7 @@ resend.emails.send({
 * 真实发送前要配置 Resend API Key、发件人和已验证域名。
 * 不把真实 `RESEND_API_KEY` 写入 `.env.example` 或提交到 Git。
 * 业务 API 不直接依赖 SMTP 或第三方邮件 SDK。
+* 邮件通知发送逻辑接入前，应检查用户在 /profile/settings 保存的邮件通知偏好。
 
 ## Next Steps
 

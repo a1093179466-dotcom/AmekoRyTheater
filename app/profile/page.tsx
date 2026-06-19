@@ -302,6 +302,23 @@ export default async function ProfilePage() {
                   )}
                 </div>
               </Link>
+
+              <Link
+                href="/profile/settings"
+                className="mt-3 block rounded-2xl border border-sky-300/20 bg-sky-500/10 p-4 transition hover:border-sky-300/40 hover:bg-sky-500/15"
+              >
+                <p className="text-sm font-medium uppercase tracking-[0.25em] text-sky-300">
+                  Settings
+                </p>
+
+                <p className="mt-2 text-lg font-bold text-white">
+                  账户设置
+                </p>
+
+                <p className="mt-1 text-sm text-zinc-400">
+                  管理邮件通知偏好
+                </p>
+              </Link>
             </aside>
 
             <div className="flex flex-col gap-8">
