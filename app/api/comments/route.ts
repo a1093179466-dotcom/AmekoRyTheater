@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminNotifications } from "@/lib/notifications";
+import { sendCommentReplyEmailNotification } from "@/lib/emailNotifications";
 
 export const runtime = "nodejs";
 
@@ -192,6 +193,15 @@ export async function POST(request: Request) {
       } catch (notificationError) {
         console.error("创建评论回复通知失败：", notificationError);
       }
+
+      await sendCommentReplyEmailNotification({
+        recipientUserId: notificationTargetUserId,
+        actorUserId: user.id,
+        actorName: user.name,
+        postId: post.id,
+        postTitle: post.title,
+        replyContent: content,
+      });
     }
 
     if (!parentId) {

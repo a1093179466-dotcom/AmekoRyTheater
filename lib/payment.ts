@@ -1,6 +1,7 @@
 import type { Prisma, Purchase } from "@prisma/client";
 
 import { prisma } from "@/lib/prisma";
+import { sendPurchaseEmailNotification } from "@/lib/emailNotifications";
 import { createAdminNotifications } from "@/lib/notifications";
 
 const paidOrderInclude = {
@@ -201,6 +202,13 @@ export async function finalizePaidOrder({
     } catch (error) {
       console.error("创建购买通知失败：", error);
     }
+
+    await sendPurchaseEmailNotification({
+      userId: result.order.userId,
+      postId: result.order.postId,
+      postTitle: result.order.post.title,
+      orderId: result.order.id,
+    });
   }
 
   return result;

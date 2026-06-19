@@ -1353,3 +1353,43 @@ After payment preflight cleanup phase 1:
 * 临时 next start HTTP 测试：PATCH `/api/profile/settings` 可保存 false / false / true。
 * 临时 next start HTTP 测试：再次 GET `/api/profile/settings` 返回保存后的 false / false / true，确认刷新后可保持。
 * 测试创建的临时用户和 session 已清理。
+---
+
+## Update Record: Reply and Purchase Email Notifications
+
+本次完成：
+
+* 新增 `lib/emailNotifications.ts` 邮件通知辅助函数。
+* 邮件通知辅助函数复用现有 `sendEmail`。
+* 评论回复成功后继续保留站内通知。
+* 被回复用户开启 `emailNotifyCommentReply` 时，会收到评论回复邮件。
+* 回复自己不发送评论回复邮件。
+* 支付成功并解锁作品后继续保留站内通知和购买权限逻辑。
+* 购买用户开启 `emailNotifyPurchase` 时，会收到购买成功 / 内容已解锁邮件。
+* 邮件发送失败只记录服务端日志，不影响评论、回复、支付或购买主流程。
+* 邮件正文包含作品标题和跳转链接。
+* `emailNotifyNewPost` 本轮只保留偏好，不做新作品发布群发。
+* `.env.example` 增加 `SITE_URL`，用于邮件正文里的站点链接。
+* 更新 EMAIL_FLOW.md 中的邮件通知发送说明。
+
+修改过的文件：
+
+* lib/emailNotifications.ts
+* app/api/comments/route.ts
+* lib/payment.ts
+* .env.example
+* EMAIL_FLOW.md
+* CODEX_CONTEXT.md
+
+测试结果：
+
+* npx tsc --noEmit 通过。
+* npm run lint 通过（仍有既有 img 性能 warnings，0 errors）。
+* npm run build 通过。
+* dev-console 冒烟：开启评论回复偏好的用户收到 1 封“你的评论收到了回复”邮件。
+* dev-console 冒烟：关闭评论回复偏好的用户未收到回复邮件。
+* dev-console 冒烟：回复自己未发送回复邮件。
+* dev-console 冒烟：开启购买通知偏好的用户支付成功后收到 1 封“作品已解锁”邮件。
+* dev-console 冒烟：关闭购买通知偏好的用户支付成功后未收到购买邮件，购买权限仍创建。
+* 故意缺少 Resend 配置时，购买支付仍 finalizedNow=true，purchase 创建成功，只记录邮件失败日志。
+* 测试创建的临时用户、帖子、订单、购买记录和通知已清理。

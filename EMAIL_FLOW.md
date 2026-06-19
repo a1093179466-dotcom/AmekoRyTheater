@@ -35,6 +35,7 @@
 EMAIL_PROVIDER=resend
 RESEND_API_KEY="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
 EMAIL_FROM="AmekoRyTheater <no-reply@668177.xyz>"
+SITE_URL="http://localhost:3000"
 ```
 
 只做本地控制台测试时：
@@ -43,7 +44,7 @@ EMAIL_FROM="AmekoRyTheater <no-reply@668177.xyz>"
 EMAIL_PROVIDER=dev-console
 ```
 
-`RESEND_API_KEY` 只能放在本机 `.env.local`、服务器环境变量或受保护的 `.env` 中，不要提交到 Git。`EMAIL_FROM` 使用的域名需要先在 Resend 控制台完成验证。
+`RESEND_API_KEY` 只能放在本机 `.env.local`、服务器环境变量或受保护的 `.env` 中，不要提交到 Git。`EMAIL_FROM` 使用的域名需要先在 Resend 控制台完成验证。`SITE_URL` 用于邮件正文里的跳转链接，本地可以是 `http://localhost:3000`，部署后应改成正式域名。
 
 ## Dev Console Mode
 
@@ -201,7 +202,22 @@ resend.emails.send({
 
 未登录访问设置页会跳转到 `/login`。未登录调用设置 API 会返回 401 和“请先登录”。
 
-本阶段只保存偏好，不强制接入所有邮件通知发送逻辑。后续在评论回复、购买状态变化、新作品发布等邮件发送前，应先读取对应偏好字段，再决定是否发送邮件。
+账户设置页只负责保存偏好。邮件通知发送逻辑第一轮已经接入评论回复和购买成功，新作品发布群发仍预留。后续新增邮件发送场景时，应先读取对应偏好字段，再决定是否发送邮件。
+
+## Email Notification Sending
+
+`lib/emailNotifications.ts` 是第一轮邮件通知辅助函数入口，内部复用 `sendEmail`，并负责读取用户邮件偏好。
+
+当前已接入：
+
+* 评论回复成功后，继续创建站内通知；如果被回复用户开启 `emailNotifyCommentReply`，且不是回复自己，则发送“你的评论收到了回复”邮件。
+* 订单支付成功并解锁作品后，继续创建站内通知和购买权限；如果购买用户开启 `emailNotifyPurchase`，则发送“作品已解锁”邮件。
+
+邮件内容保持简洁，包含作品标题和 `/gallery/[id]` 跳转链接。链接使用 `SITE_URL` 或 `NEXT_PUBLIC_SITE_URL` 作为域名，未配置时回退到 `http://localhost:3000`。
+
+邮件通知发送失败只记录服务端日志，不影响评论、回复、支付或购买权限主流程。
+
+`emailNotifyNewPost` 本轮只保存偏好和预留说明，暂不做新作品发布群发。
 
 ## Security Rules
 
