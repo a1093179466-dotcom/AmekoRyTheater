@@ -88,6 +88,11 @@ Completed:
 * Payment preflight cleanup
 * Centralized simulated payment finalization
 * PAYMENT_FLOW.md documentation
+* Email system preflight
+* Dev-console email sender
+* Email verification code foundation
+* Password reset token foundation
+* EMAIL_FLOW.md documentation
 
 ## Important Existing Files
 
@@ -186,6 +191,8 @@ Important Prisma models include:
 * Favorite
 * Like
 * Notification
+* EmailVerificationCode
+* PasswordResetToken
 
 Recent additions:
 
@@ -198,6 +205,8 @@ Recent additions:
 * Like model for post likes
 * Notification model for in-site notifications
 * SiteSetting homeBackgroundImage / homeHeroImage for homepage visual assets
+* EmailVerificationCode model for register and password reset codes
+* PasswordResetToken model for future password reset links
 
 PostImage:
 
@@ -263,35 +272,22 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-Payment preflight cleanup phase 1.
+Email system preflight phase 1.
 
 Implemented:
 
-* PayOrderButton countdown lint issue fixed without changing behavior
-* Payment success handling centralized in lib/payment.ts finalizePaidOrder
-* Simulated payment endpoint calls finalizePaidOrder
-* Purchase creation remains behind backend-confirmed payment success
-* Repeated payment calls are idempotent and do not duplicate Purchase or admin purchase notifications
-* PAYMENT_FLOW.md documents current simulated flow and future EPAY boundaries
-* Site settings visual assets phase 1 remains completed
+* Dev-console email sender in lib/email.ts
+* EmailVerificationCode model for REGISTER and RESET_PASSWORD codes
+* PasswordResetToken model for future password reset links
+* Email verification code helper functions in lib/emailCode.ts
+* POST /api/auth/send-email-code endpoint
+* EMAIL_FLOW.md documents current email boundaries and future SMTP replacement point
+* Existing register and login flows remain unchanged
 
 ## Recommended Next Task
 
 Next task:
-Favicon / site icon handling, or Email system preflight.
-
-Suggested favicon / site icon handling:
-
-1. Confirm current app icon / favicon files
-2. Decide manual replacement or later upload flow
-3. Document cache behavior and recommended image formats
-
-Suggested email system preflight:
-
-1. Review registration and login account boundaries
-2. Draft email verification code model
-3. Draft password reset route and token lifecycle
-4. Keep email sending abstracted behind a local service helper
+Register email verification integration.
 
 ## Later Roadmap
 
@@ -302,9 +298,10 @@ After payment preflight cleanup phase 1:
    * manual replacement first, upload flow can be delayed
 2. Email system:
 
-   * email verification
-   * password reset
-   * email notification preferences
+   * Register email verification integration
+   * Password reset flow
+   * Real SMTP provider configuration
+   * Email notification preferences
 3. Real payment integration:
 
    * EPAY order creation
@@ -988,3 +985,95 @@ After payment preflight cleanup phase 1:
 推荐下一步：
 
 * Favicon / site icon handling，或者 Email system preflight
+
+---
+
+## Update Record: Email System Preflight Phase 1
+
+本次完成：
+
+* 邮箱系统前置整理第一轮
+* 新增 dev-console 邮件发送抽象
+* 新增邮箱验证码创建与校验工具
+* 新增发送邮箱验证码 API
+* 新增注册验证码和找回密码 token 数据模型
+* 新增 EMAIL_FLOW.md 邮箱流程文档
+* 保持现有注册和登录流程不强制接入验证码
+
+修改过的文件：
+
+* prisma/schema.prisma
+* lib/email.ts
+* lib/emailCode.ts
+* app/api/auth/send-email-code/route.ts
+* EMAIL_FLOW.md
+* CODEX_CONTEXT.md
+
+新增的 Prisma 模型：
+
+* EmailVerificationCode
+  * email / code / purpose / expiresAt / consumedAt / createdAt
+  * 用于 REGISTER 和 RESET_PASSWORD 验证码
+  * 按 email、code、expiresAt 建索引
+* PasswordResetToken
+  * userId / token / expiresAt / consumedAt / createdAt
+  * token 唯一
+  * user relation 使用 onDelete Cascade
+  * 按 userId、expiresAt 建索引
+
+新增的 API：
+
+* POST /api/auth/send-email-code
+  * 支持 REGISTER 和 RESET_PASSWORD
+  * REGISTER 会拒绝已注册邮箱并返回友好提示
+  * RESET_PASSWORD 不暴露邮箱是否存在
+  * 开发阶段调用 dev-console 邮件发送器，不接真实 SMTP
+
+新增的邮件工具：
+
+* lib/email.ts sendEmail
+  * 当前 provider 为 dev-console
+  * 输出邮件内容到服务端控制台
+  * 后续真实 SMTP 只替换此统一出口
+* lib/emailCode.ts
+  * generateNumericCode
+  * createEmailVerificationCode
+  * verifyEmailCode
+  * 同邮箱同 purpose 创建新验证码前会清理旧的未使用验证码
+  * 校验成功后写入 consumedAt
+
+新增的文档：
+
+* EMAIL_FLOW.md
+  * 记录 dev-console 邮件模式
+  * 记录统一邮件出口
+  * 记录验证码、找回密码 token 和安全原则
+  * 记录后续注册验证码接入方向
+
+测试结果：
+
+* npx prisma db push 成功
+* npx prisma generate 成功
+* npx tsc --noEmit 通过
+* npm run lint 通过（仍有既有 img 性能 warnings，0 errors）
+* npm run build 通过
+* POST /api/auth/send-email-code REGISTER 对未注册邮箱返回 success=true，并创建 EmailVerificationCode 记录
+* 已注册邮箱请求 REGISTER 返回 409 和“这个邮箱已经注册过了，可以直接登录”
+* POST /api/auth/send-email-code RESET_PASSWORD 对不存在邮箱返回 success=true 和泛化提示
+* POST /api/auth/send-email-code RESET_PASSWORD 对已存在邮箱返回 success=true，并创建 EmailVerificationCode 记录
+* 服务端控制台可看到 [dev-console email] 邮件日志
+* 现有注册 API 回归通过，临时测试用户可正常注册
+* 现有登录 API 回归通过，临时测试用户可正常登录
+* /login、/register、/gallery 页面 HTTP 访问返回 200
+* 点赞、收藏、通知、模拟支付 API 未登录冒烟均保持 401 友好 JSON，没有 500
+* 全局扫描 app/components/lib/prisma 未发现 alert/window.confirm
+* 全局扫描 app/components/lib/prisma 未发现用户可见“买断”文案
+* 测试创建的临时用户和验证码已清理
+
+已知问题：
+
+* 暂无新的功能问题
+* 当前仍为 dev-console 邮件模式，不真实发送邮件
+* 注册流程尚未强制校验邮箱验证码，留到下一轮接入
+
+推荐下一步：注册邮箱验证码接入

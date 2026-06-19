@@ -42,6 +42,7 @@ model User {
   favorites    Favorite[]
   likes        Like[]
   notifications Notification[]
+  passwordResetTokens PasswordResetToken[]
   avatarUrl String?
 }
 
@@ -236,6 +237,34 @@ model Notification {
   @@index([userId])
   @@index([isRead])
   @@index([createdAt])
+}
+
+model EmailVerificationCode {
+  id        Int      @id @default(autoincrement())
+  email     String
+  code      String
+  purpose   String
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([email])
+  @@index([code])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  token     String   @unique
+  expiresAt DateTime
+  consumedAt DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model Order {
