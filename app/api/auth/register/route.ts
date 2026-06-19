@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { hashPassword } from "@/lib/password";
+import { verifyEmailCode } from "@/lib/emailCode";
 
 export async function POST(request: Request) {
   try {
@@ -8,6 +9,7 @@ export async function POST(request: Request) {
     const email = String(body.email || "").trim().toLowerCase();
     const name = String(body.name || "").trim();
     const password = String(body.password || "");
+    const emailCode = String(body.emailCode || body.code || "").trim();
 
     // 1. 基础校验：邮箱不能为空
     if (!email) {
@@ -61,7 +63,20 @@ export async function POST(request: Request) {
       );
     }
 
-    // 5. 检查邮箱是否已经注册
+    // 5. 注册必须先通过邮箱验证码。
+    if (!emailCode) {
+      return Response.json(
+        {
+          success: false,
+          message: "邮箱验证码不能为空",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // 6. 检查邮箱是否已经注册
     const existingUser = await prisma.user.findUnique({
       where: {
         email,
@@ -80,10 +95,29 @@ export async function POST(request: Request) {
       );
     }
 
-    // 6. 密码不能明文保存，必须先哈希
+    const verificationResult = await verifyEmailCode({
+      email,
+      purpose: "REGISTER",
+      code: emailCode,
+    });
+
+    if (!verificationResult.success) {
+      return Response.json(
+        {
+          success: false,
+          message: verificationResult.message,
+          reason: verificationResult.reason,
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // 7. 密码不能明文保存，必须先哈希
     const passwordHash = hashPassword(password);
 
-    // 7. 创建新用户
+    // 8. 创建新用户
     const user = await prisma.user.create({
       data: {
         email,

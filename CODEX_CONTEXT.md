@@ -17,6 +17,7 @@ Tech stack:
 * PostgreSQL
 * Local file uploads under public/uploads
 * Git / GitHub
+* Resend email provider
 
 Project positioning:
 
@@ -90,6 +91,8 @@ Completed:
 * PAYMENT_FLOW.md documentation
 * Email system preflight
 * Dev-console email sender
+* Resend email provider support
+* Register email verification integration
 * Email verification code foundation
 * Password reset token foundation
 * EMAIL_FLOW.md documentation
@@ -272,22 +275,26 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-Email system preflight phase 1.
+Register email verification integration.
 
 Implemented:
 
 * Dev-console email sender in lib/email.ts
+* Resend provider mode in lib/email.ts
+* EMAIL_PROVIDER / RESEND_API_KEY / EMAIL_FROM environment variables documented
+* Register page sends REGISTER email verification codes with a 60-second resend countdown
+* Register API requires and consumes a valid REGISTER email code
 * EmailVerificationCode model for REGISTER and RESET_PASSWORD codes
 * PasswordResetToken model for future password reset links
 * Email verification code helper functions in lib/emailCode.ts
 * POST /api/auth/send-email-code endpoint
-* EMAIL_FLOW.md documents current email boundaries and future SMTP replacement point
+* EMAIL_FLOW.md documents dev-console and Resend provider modes
 * Existing register and login flows remain unchanged
 
 ## Recommended Next Task
 
 Next task:
-Register email verification integration.
+Password reset flow.
 
 ## Later Roadmap
 
@@ -298,7 +305,7 @@ After payment preflight cleanup phase 1:
    * manual replacement first, upload flow can be delayed
 2. Email system:
 
-   * Register email verification integration
+   * Register email verification integration (completed)
    * Password reset flow
    * Real SMTP provider configuration
    * Email notification preferences
@@ -1077,3 +1084,126 @@ After payment preflight cleanup phase 1:
 * 注册流程尚未强制校验邮箱验证码，留到下一轮接入
 
 推荐下一步：注册邮箱验证码接入
+
+---
+
+## Update Record: Resend Email Provider Integration
+
+本次完成：
+
+* 接入 Resend 真实邮件发送能力
+* 保留 dev-console 本地控制台邮件模式
+* `lib/email.ts` 支持 `EMAIL_PROVIDER=resend`
+* 发送成功 / 失败返回统一结构
+* 发送失败日志不输出 Resend API Key
+* 发送验证码 API 会在邮件发送失败时返回失败提示
+* 更新 `.env.example`、`EMAIL_FLOW.md` 和 `CODEX_CONTEXT.md`
+
+修改过的文件：
+
+* package.json
+* package-lock.json
+* .env.example
+* lib/email.ts
+* app/api/auth/send-email-code/route.ts
+* EMAIL_FLOW.md
+* CODEX_CONTEXT.md
+
+新增依赖：
+
+* resend
+
+新增环境变量：
+
+* EMAIL_PROVIDER
+* RESEND_API_KEY
+* EMAIL_FROM
+
+测试结果：
+
+* npm install resend 成功
+* npx tsc --noEmit 通过
+* npm run lint 通过（仍有既有 img 性能 warnings，0 errors）
+* npm run build 通过
+* dev-console 模式 POST /api/auth/send-email-code REGISTER 返回 success=true，并输出 [dev-console email]
+* 缺少 Resend 配置时，sendEmail 返回失败结构，日志只输出 hasApiKey / hasFrom，不泄露 API Key
+* 全局扫描 app/components/lib/prisma 未发现 alert/window.confirm
+* 全局扫描 app/components/lib/prisma 未发现用户可见“买断”文案
+
+已知问题：
+
+* 未在当前环境使用真实 Resend API Key 发出外网邮件，避免把密钥写入仓库或日志
+* 真实发送需要在本机 `.env.local` 或部署环境变量中配置真实 `RESEND_API_KEY`
+* `EMAIL_FROM` 域名需要在 Resend 控制台完成验证
+
+推荐下一步：注册邮箱验证码接入
+
+---
+
+## Update Record: Register Email Verification Integration
+
+本次完成：
+
+* 注册流程接入邮箱验证码
+* 注册页新增“发送验证码”按钮和邮箱验证码输入框
+* 发送验证码调用 `POST /api/auth/send-email-code`，purpose 使用 `REGISTER`
+* 发送成功后按钮进入 60 秒倒计时，避免重复点击
+* 注册 API 必须校验邮箱验证码，验证码正确、未过期、未使用才允许注册
+* 验证成功后验证码会标记为 consumed
+* 保持现有注册字段和登录流程不变
+* 已注册邮箱发送 REGISTER 验证码时继续返回友好提示
+* 更新 EMAIL_FLOW.md 和 CODEX_CONTEXT.md
+
+修改过的文件：
+
+* app/register/page.tsx
+* app/api/auth/register/route.ts
+* app/api/auth/send-email-code/route.ts
+* lib/email.ts
+* EMAIL_FLOW.md
+* CODEX_CONTEXT.md
+* package.json
+* package-lock.json
+* .gitignore
+* .env.example
+
+新增或调整的前端交互：
+
+* 注册页邮箱下方新增验证码输入框
+* 注册页新增发送验证码按钮
+* 发送验证码时会校验邮箱不能为空和格式包含 @
+* 发送中和倒计时期间禁用按钮
+* 注册提交时会校验邮箱验证码不能为空
+* 所有提示继续使用 FeedbackProvider toast，不使用 alert/window.confirm
+
+新增或调整的后端逻辑：
+
+* POST /api/auth/register 接收 `emailCode`
+* 注册前调用 `verifyEmailCode({ purpose: "REGISTER" })`
+* 验证失败返回验证码无效 / 已过期 / 已使用等提示
+* 验证成功后消费验证码，再创建用户
+* POST /api/auth/send-email-code 在邮件发送失败时返回 502，不假装发送成功
+
+测试结果：
+
+* npx tsc --noEmit 通过
+* npm run lint 通过（仍有既有 img 性能 warnings，0 errors）
+* npm run build 通过
+* dev-console 模式下 REGISTER 发送验证码 API 返回 success=true，并输出 [dev-console email]
+* 注册 API 缺少验证码返回“邮箱验证码不能为空”
+* 注册 API 错误验证码返回“验证码无效”
+* 注册 API 过期验证码返回“验证码已过期”
+* 注册 API 正确验证码可以创建用户，并将验证码标记为 consumed
+* 已使用验证码不能重复注册，返回“验证码已使用”
+* 已注册邮箱请求 REGISTER 验证码返回 409 友好提示
+* /register 页面 HTTP 访问返回 200，页面包含“发送验证码”和“邮箱验证码”
+* 全局扫描 app/components/lib/prisma 未发现 alert/window.confirm
+* 全局扫描 app/components/lib/prisma 未发现用户可见“买断”文案
+* 测试创建的临时用户和验证码已清理
+
+已知问题：
+
+* 真实发送需要配置 `.env.local` 中的 Resend 环境变量，并确保发件域名已在 Resend 验证
+* 找回密码流程尚未接入页面和重置密码 API
+
+推荐下一步：找回密码流程

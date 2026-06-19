@@ -113,10 +113,22 @@ export async function POST(request: Request) {
       purpose,
     });
 
-    await sendEmail({
+    const sendResult = await sendEmail({
       to: email,
       ...emailContent,
     });
+
+    if (!sendResult.success) {
+      return Response.json(
+        {
+          success: false,
+          message: "验证码创建成功，但邮件发送失败，请稍后再试",
+        },
+        {
+          status: 502,
+        }
+      );
+    }
 
     if (purpose === "RESET_PASSWORD") {
       return Response.json({

@@ -2,22 +2,102 @@
 
 ## Current Phase
 
-当前阶段是 dev-console 邮件模式，不接入真实 SMTP，也不会真正向用户邮箱发送邮件。
+当前邮件系统支持两种模式：
 
-开发环境里，业务代码调用 `lib/email.ts` 的 `sendEmail` 后，邮件收件人、标题和正文会输出到服务端控制台，便于本地测试邮箱验证码流程。
+* `dev-console`：只输出到服务端控制台，不真实发送邮件。
+* `resend`：通过 Resend 真实发送邮件。
+
+本地开发如果只想验证流程，可以使用 `dev-console`。需要测试真实收信时，在本机 `.env.local` 或部署环境变量中配置 `EMAIL_PROVIDER=resend`。
 
 ## Unified Email Sender
 
 `lib/email.ts` 是项目统一邮件出口。
 
-后续接入真实 SMTP 或第三方邮件服务时，应优先替换 `sendEmail` 内部实现，不要让业务 API 直接依赖具体邮件服务。
+业务 API 只调用 `sendEmail`，不直接依赖 Resend SDK。后续如果替换 SMTP 或其他第三方邮件服务，应优先替换 `lib/email.ts` 内部实现。
 
-当前 `sendEmail` 返回统一结构：
+`sendEmail` 返回统一结构：
 
 * `success`
 * `provider`
+* `id`，真实服务发送成功时可能返回
+* `message`，发送失败时返回
 
-当前 provider 为 `dev-console`。
+当前 provider 支持：
+
+* `dev-console`
+* `resend`
+
+## Environment Variables
+
+示例配置：
+
+```env
+EMAIL_PROVIDER=resend
+RESEND_API_KEY="re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+EMAIL_FROM="AmekoRyTheater <no-reply@668177.xyz>"
+```
+
+只做本地控制台测试时：
+
+```env
+EMAIL_PROVIDER=dev-console
+```
+
+`RESEND_API_KEY` 只能放在本机 `.env.local`、服务器环境变量或受保护的 `.env` 中，不要提交到 Git。`EMAIL_FROM` 使用的域名需要先在 Resend 控制台完成验证。
+
+## Dev Console Mode
+
+`EMAIL_PROVIDER` 不是 `resend` 时，默认使用 `dev-console`。
+
+`sendEmail` 会把邮件内容输出到服务端控制台：
+
+* to
+* subject
+* text
+* html
+
+这种模式不会真实发送邮件，适合本地开发。
+
+## Resend Mode
+
+`EMAIL_PROVIDER=resend` 时，`lib/email.ts` 会读取：
+
+* `RESEND_API_KEY`
+* `EMAIL_FROM`
+
+然后调用 Resend SDK：
+
+```ts
+resend.emails.send({
+  from,
+  to,
+  subject,
+  text,
+  html,
+});
+```
+
+发送成功时返回 `success=true`、`provider="resend"`，并尽量返回 Resend email id。
+
+发送失败时返回 `success=false`，发送验证码 API 会返回失败提示。服务端日志会输出收件人、标题和 Resend 返回的错误名称 / 状态码 / 信息，但不会输出 API Key。
+
+如果缺少 `RESEND_API_KEY` 或 `EMAIL_FROM`，`sendEmail` 会返回失败结构，并在服务端日志提示配置缺失。
+
+## Register Email Verification
+
+注册页已经接入邮箱验证码：
+
+1. 用户填写邮箱。
+2. 点击“发送验证码”。
+3. 前端调用 `POST /api/auth/send-email-code`，参数为 `purpose=REGISTER`。
+4. 发送成功后按钮进入 60 秒倒计时，避免重复点击。
+5. 用户填写昵称、密码、确认密码和邮箱验证码。
+6. 注册页提交 `POST /api/auth/register`，请求体包含 `emailCode`。
+7. 注册 API 调用 `verifyEmailCode` 校验邮箱、purpose 和验证码。
+8. 验证码正确、未过期、未使用时，注册 API 会标记 `consumedAt` 并创建用户。
+9. 验证码错误、已过期或已使用时，注册失败并返回友好提示。
+
+已注册邮箱请求 `REGISTER` 验证码时，`POST /api/auth/send-email-code` 返回 409 和友好提示，不会发送邮件。
 
 ## Email Verification Codes
 
@@ -49,6 +129,19 @@
 }
 ```
 
+`POST /api/auth/register` 现在必须携带注册验证码。
+
+请求示例：
+
+```json
+{
+  "email": "xxx@example.com",
+  "name": "用户名",
+  "password": "至少 6 位密码",
+  "emailCode": "123456"
+}
+```
+
 `REGISTER` 会检查邮箱是否已注册；已注册时返回友好错误。
 
 `RESET_PASSWORD` 不暴露邮箱是否存在。即使邮箱不存在，也返回类似“如果邮箱存在，我们会发送验证码”的成功提示，避免泄露账号存在性。
@@ -56,17 +149,19 @@
 ## Security Rules
 
 * 不在日志输出用户密码。
+* 不在日志输出 Resend API Key。
 * 找回密码流程不暴露邮箱是否存在。
-* 验证码使用后必须 consumed。
+* 注册验证码使用后必须 consumed。
 * 过期验证码不可用。
-* 后续上线前要配置真实邮件服务和环境变量。
+* 真实发送前要配置 Resend API Key、发件人和已验证域名。
+* 不把真实 `RESEND_API_KEY` 写入 `.env.example` 或提交到 Git。
 * 业务 API 不直接依赖 SMTP 或第三方邮件 SDK。
 
 ## Next Steps
 
-下一轮建议接入注册邮箱验证码：
+下一轮建议接入找回密码流程：
 
-* 注册页增加发送验证码入口。
-* 注册页增加验证码输入框。
-* 注册 API 校验 `REGISTER` 验证码后再创建用户。
+* 找回密码页发送 `RESET_PASSWORD` 验证码。
+* 重置密码页校验验证码或 token。
+* 重置成功后清理旧 session。
 * 保持现有 FeedbackProvider 交互，不使用 `alert` / `window.confirm`。
