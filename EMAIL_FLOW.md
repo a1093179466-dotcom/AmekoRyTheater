@@ -90,7 +90,7 @@ resend.emails.send({
 1. 用户填写邮箱。
 2. 点击“发送验证码”。
 3. 前端调用 `POST /api/auth/send-email-code`，参数为 `purpose=REGISTER`。
-4. 发送成功后按钮进入 60 秒倒计时，避免重复点击。
+4. 前端发送成功后按钮进入 60 秒倒计时；后端也会拒绝同邮箱同 purpose 在 60 秒内重复发送。
 5. 用户填写昵称、密码、确认密码和邮箱验证码。
 6. 注册页提交 `POST /api/auth/register`，请求体包含 `emailCode`。
 7. 注册 API 调用 `verifyEmailCode` 校验邮箱、purpose 和验证码。
@@ -108,7 +108,15 @@ resend.emails.send({
 * `REGISTER`
 * `RESET_PASSWORD`
 
-验证码默认有效期建议为 10 分钟。验证码成功校验后必须写入 `consumedAt`，已使用或过期验证码不可继续使用。
+验证码默认有效期为 10 分钟。验证码成功校验后必须写入 `consumedAt`，已使用或过期验证码不可继续使用。
+
+发送和校验安全规则：
+
+* 同一邮箱同一 purpose，60 秒内不能重复发送验证码。
+* 短时间内请求过多时，发送接口返回 429 和“验证码请求过于频繁，请稍后再试”。
+* 创建新验证码前，会删除同邮箱同 purpose 的旧未使用验证码。
+* `REGISTER` 和 `RESET_PASSWORD` 使用不同 purpose，发送、清理、校验互相隔离，不能串用。
+* 校验时必须同时匹配邮箱、purpose 和验证码。
 
 ## Password Reset Flow
 
@@ -117,7 +125,7 @@ resend.emails.send({
 1. 用户从 `/login` 或登录弹窗点击“忘记密码？”。
 2. `/forgot-password` 输入邮箱并发送验证码。
 3. 前端调用 `POST /api/auth/send-email-code`，参数为 `purpose=RESET_PASSWORD`。
-4. 发送接口不暴露邮箱是否存在。不存在的邮箱也返回泛化成功提示，但不会真实创建验证码。
+4. 发送接口不暴露邮箱是否存在。不存在的邮箱也返回泛化成功提示，不会真实发送邮件，也不能用于重置密码。
 5. 用户进入 `/reset-password`，填写邮箱、验证码、新密码、确认新密码。
 6. `/api/auth/reset-password` 先确认邮箱对应用户存在，但不存在时只返回“验证码无效”，不暴露账号存在性。
 7. API 调用 `verifyEmailCode` 校验 `RESET_PASSWORD` 验证码。
@@ -182,6 +190,10 @@ resend.emails.send({
 * 不在日志输出用户密码。
 * 不在日志输出 Resend API Key。
 * 找回密码流程不暴露邮箱是否存在。
+* 同一邮箱同一 purpose 60 秒内不能重复发送验证码。
+* 短时间内验证码请求过多会返回 429 友好提示。
+* 创建新验证码前会清理同邮箱同 purpose 的旧未使用验证码。
+* 注册验证码和找回密码验证码按 purpose 隔离，互不影响。
 * 重置密码成功后会清理该用户旧 session。
 * 注册验证码使用后必须 consumed。
 * 过期验证码不可用。

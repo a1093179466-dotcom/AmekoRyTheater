@@ -19,6 +19,12 @@ type VerifyEmailCodeParams = {
   code: string;
 };
 
+type FindRecentEmailVerificationCodeParams = {
+  email: string;
+  purpose: EmailCodePurpose;
+  since: Date;
+};
+
 export type VerifyEmailCodeResult =
   | {
       success: true;
@@ -45,6 +51,31 @@ export function generateNumericCode(length = 6) {
   }
 
   return code;
+}
+
+export async function findRecentEmailVerificationCode({
+  email,
+  purpose,
+  since,
+}: FindRecentEmailVerificationCodeParams) {
+  const normalizedEmail = email.trim().toLowerCase();
+
+  return prisma.emailVerificationCode.findFirst({
+    where: {
+      email: normalizedEmail,
+      purpose,
+      createdAt: {
+        gte: since,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      createdAt: true,
+    },
+  });
 }
 
 export async function createEmailVerificationCode({

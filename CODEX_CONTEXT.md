@@ -1256,7 +1256,7 @@ After payment preflight cleanup phase 1:
 * /reset-password 页面 HTTP 访问返回 200
 * /login 页面包含“忘记密码？”入口
 * RESET_PASSWORD 发送验证码 API 对存在邮箱返回 success=true，并创建验证码
-* RESET_PASSWORD 发送验证码 API 对不存在邮箱返回泛化 success=true，不创建验证码
+* RESET_PASSWORD 发送验证码 API 对不存在邮箱返回泛化 success=true，不真实发送邮件
 * reset-password API 缺少验证码返回“邮箱验证码不能为空”
 * reset-password API 密码不一致返回“两次输入的密码不一致”
 * reset-password API 错误验证码返回“验证码无效”
@@ -1274,3 +1274,38 @@ After payment preflight cleanup phase 1:
 * 邮件通知偏好尚未接入
 
 推荐下一步：邮件通知偏好，或账号安全收尾检查
+---
+
+## Update Record: Account Email Security Polish
+
+本次完成：
+
+* `POST /api/auth/send-email-code` 增加基础防刷限制。
+* 同一邮箱同一 purpose 60 秒内重复请求会返回 429 和剩余等待秒数。
+* 同一邮箱同一 purpose 10 分钟内请求超过 10 次会返回“验证码请求过于频繁，请稍后再试”。
+* 同一 IP 同一 purpose 10 分钟内请求超过 40 次也会返回 429 友好提示。
+* 创建新验证码前继续清理同邮箱同 purpose 的旧未使用验证码。
+* 过期验证码、已使用验证码继续不可用。
+* REGISTER 和 RESET_PASSWORD 通过 purpose 隔离，互不影响。
+* RESET_PASSWORD 对不存在邮箱继续返回泛化成功提示，不真实发送邮件，重置 API 仍要求用户存在。
+* 重置密码成功后仍在同一事务中更新密码并删除该用户旧 session。
+* 更新 EMAIL_FLOW.md 中的验证码安全说明。
+
+修改过的文件：
+
+* app/api/auth/send-email-code/route.ts
+* lib/emailCode.ts
+* EMAIL_FLOW.md
+* CODEX_CONTEXT.md
+
+测试结果：
+
+* npx tsc --noEmit 通过。
+* npm run lint 通过（仍有既有 img 性能 warnings，0 errors）。
+* npm run build 通过。
+* 使用随机不存在邮箱调用 RESET_PASSWORD 发送验证码：第一次返回泛化 success=true，第二次立即返回 429 和“验证码刚刚发送过，请 60 秒后再试”。
+* REGISTER 验证码用 RESET_PASSWORD purpose 校验返回“验证码无效”，确认 purpose 隔离。
+* REGISTER 正确验证码首次校验成功，再次校验返回“验证码已使用”。
+* 过期验证码校验返回“验证码已过期”。
+* 重置密码测试用户重置前有 2 条 session，成功重置后 session 数为 0，RESET_PASSWORD 验证码被 consumed。
+* 测试创建的临时用户、session 和验证码已清理。
