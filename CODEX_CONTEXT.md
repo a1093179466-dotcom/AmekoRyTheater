@@ -77,7 +77,8 @@ Completed functional areas:
 * Homepage background image and Hero image configurable from site settings
 * Toast / custom confirm system for core interactions
 * Intercepted login/register/forgot/reset modal routes
-* PAYMENT_FLOW.md, EMAIL_FLOW.md, ROADMAP.md documentation
+* PAYMENT_FLOW.md, EMAIL_FLOW.md, ROADMAP.md, DEPLOYMENT.md documentation
+* Windows deployment update script for cloud-machine auto updates
 
 Known MVP pre-launch concerns:
 
@@ -132,6 +133,11 @@ Interactions:
 * app/profile/notifications/page.tsx
 * components/NotificationList.tsx
 * lib/notifications.ts
+
+Deployment:
+
+* DEPLOYMENT.md
+* scripts/deploy-update.ps1
 
 Orders and purchases:
 
@@ -254,6 +260,10 @@ npx prisma db push
 npx prisma generate
 npm run dev
 
+Deployment:
+PowerShell -ExecutionPolicy Bypass -File .\scripts\deploy-update.ps1
+PowerShell -ExecutionPolicy Bypass -File .\scripts\deploy-update.ps1 -RestartMode none
+
 Git:
 git status
 git add .
@@ -265,7 +275,7 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-Reply and purchase email notifications.
+Cloud deployment update workflow.
 
 Recently completed:
 
@@ -277,11 +287,13 @@ Recently completed:
 * Comment reply email notifications, gated by `emailNotifyCommentReply`
 * Purchase success / content unlock email notifications, gated by `emailNotifyPurchase`
 * Email failures are logged but do not block comments, replies, payment finalization, or purchase creation
+* `scripts/deploy-update.ps1` for Windows cloud-machine update checks
+* `DEPLOYMENT.md` with first deploy, manual update, scheduled task, logging, failure, and rollback notes
 
 ## Recommended Next Task
 
 Next task:
-MVP pre-launch cleanup, especially removing old test endpoints, final wording scan, and deciding whether this launch is an internal preview or a real paid launch.
+Test the deployment update script on the cloud machine, install/configure PM2, add the Windows scheduled task, then continue MVP pre-launch cleanup.
 ## Later Roadmap
 
 MVP launch readiness route:
@@ -299,6 +311,7 @@ MVP launch readiness route:
 3. Production deployment
 
    * production PostgreSQL
+   * PM2 process management and Windows scheduled update task
    * HTTPS and domain
    * SITE_URL configured to official domain
    * persistent upload storage or backup strategy
@@ -1415,3 +1428,23 @@ MVP launch readiness route:
 * `PAYMENT_FLOW.md` 原本缺少购买成功邮件通知说明，已补充购买解锁邮件不影响支付主流程的边界。
 * `app/api/artworks/route.ts` 是明显开发痕迹，建议上线前删除或重写。
 * 前台支付仍是模拟支付文案；真实收费上线前必须接真实支付。
+---
+
+## Update Record: Deployment Update Workflow
+
+Completed in this pass:
+
+* Added `scripts/deploy-update.ps1` for Windows cloud-machine update checks.
+* Script enters the project path, fetches `origin/main`, compares local `HEAD` and `origin/main`, exits with a log when there is no update, and uses `git pull --ff-only` when a fast-forward update exists.
+* Dependency installation is conditional on `package.json`, `package-lock.json`, or `npm-shrinkwrap.json` changes. With `package-lock.json` present, the script uses `npm ci`.
+* Script always runs `npx prisma generate` and `npm run build` after an update.
+* PM2 is the recommended process manager. The script reloads an existing `ameko-ry-theater` PM2 process, or starts `npm run start` under that name if the process is missing.
+* Added deployment logs under `logs/deploy/deploy-update-yyyy-MM-dd.log` and ignored runtime logs with `logs/` in `.gitignore`.
+* Added `DEPLOYMENT.md` with first deploy, manual update, Windows scheduled task, log viewing, failure behavior, rollback, and restart verification instructions.
+
+Important deployment notes:
+
+* `.env.local` and secrets remain local-only and ignored by Git.
+* The script does not run `prisma db push` automatically; first deploy still documents it because the project currently has no Prisma migrations directory.
+* Build failures stop before PM2 reload, so the running process should not be intentionally restarted onto a failed build.
+* The cloud machine should install PM2 globally or run the script with `-RestartMode none` only for build-only validation.
