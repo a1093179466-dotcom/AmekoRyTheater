@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type AuthMode = "login" | "register";
 
@@ -337,6 +338,16 @@ export default function AuthForm({
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
+        {isLogin && (
+          <div className="-mt-2 flex justify-end text-sm">
+            <Link
+              href="/forgot-password"
+              className="text-zinc-500 underline transition hover:text-white"
+            >
+              忘记密码？
+            </Link>
+          </div>
+        )}
 
         {!isLogin && (
           <label className="flex flex-col gap-2">

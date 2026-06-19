@@ -110,6 +110,21 @@ resend.emails.send({
 
 验证码默认有效期建议为 10 分钟。验证码成功校验后必须写入 `consumedAt`，已使用或过期验证码不可继续使用。
 
+## Password Reset Flow
+
+找回密码流程已经接入：
+
+1. 用户从 `/login` 或登录弹窗点击“忘记密码？”。
+2. `/forgot-password` 输入邮箱并发送验证码。
+3. 前端调用 `POST /api/auth/send-email-code`，参数为 `purpose=RESET_PASSWORD`。
+4. 发送接口不暴露邮箱是否存在。不存在的邮箱也返回泛化成功提示，但不会真实创建验证码。
+5. 用户进入 `/reset-password`，填写邮箱、验证码、新密码、确认新密码。
+6. `/api/auth/reset-password` 先确认邮箱对应用户存在，但不存在时只返回“验证码无效”，不暴露账号存在性。
+7. API 调用 `verifyEmailCode` 校验 `RESET_PASSWORD` 验证码。
+8. 验证码正确、未过期、未使用时，更新用户密码并消费验证码。
+9. 重置成功后会清理该用户旧 session，需要重新登录。
+10. 验证码错误、已过期或已使用时，重置失败并返回友好提示。
+
 ## Password Reset Tokens
 
 `PasswordResetToken` 用于后续找回密码链接流程。
@@ -142,6 +157,22 @@ resend.emails.send({
 }
 ```
 
+
+`POST /api/auth/reset-password` 用于重置密码。
+
+请求示例：
+
+```json
+{
+  "email": "xxx@example.com",
+  "emailCode": "123456",
+  "password": "new-password",
+  "confirmPassword": "new-password"
+}
+```
+
+密码规则沿用注册逻辑：至少 6 位，且两次输入必须一致。
+
 `REGISTER` 会检查邮箱是否已注册；已注册时返回友好错误。
 
 `RESET_PASSWORD` 不暴露邮箱是否存在。即使邮箱不存在，也返回类似“如果邮箱存在，我们会发送验证码”的成功提示，避免泄露账号存在性。
@@ -151,6 +182,7 @@ resend.emails.send({
 * 不在日志输出用户密码。
 * 不在日志输出 Resend API Key。
 * 找回密码流程不暴露邮箱是否存在。
+* 重置密码成功后会清理该用户旧 session。
 * 注册验证码使用后必须 consumed。
 * 过期验证码不可用。
 * 真实发送前要配置 Resend API Key、发件人和已验证域名。
@@ -159,9 +191,8 @@ resend.emails.send({
 
 ## Next Steps
 
-下一轮建议接入找回密码流程：
+下一轮建议接入邮件通知偏好或继续完善账号安全：
 
-* 找回密码页发送 `RESET_PASSWORD` 验证码。
-* 重置密码页校验验证码或 token。
-* 重置成功后清理旧 session。
-* 保持现有 FeedbackProvider 交互，不使用 `alert` / `window.confirm`。
+* 个人中心增加邮件通知偏好。
+* 后续发布作品时可选择邮件通知用户。
+* 上线前继续确认 Resend 域名、额度、退信和垃圾箱表现。

@@ -93,6 +93,7 @@ Completed:
 * Dev-console email sender
 * Resend email provider support
 * Register email verification integration
+* Password reset flow
 * Email verification code foundation
 * Password reset token foundation
 * EMAIL_FLOW.md documentation
@@ -275,7 +276,7 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-Register email verification integration.
+Password reset flow.
 
 Implemented:
 
@@ -284,6 +285,9 @@ Implemented:
 * EMAIL_PROVIDER / RESEND_API_KEY / EMAIL_FROM environment variables documented
 * Register page sends REGISTER email verification codes with a 60-second resend countdown
 * Register API requires and consumes a valid REGISTER email code
+* Forgot password page sends RESET_PASSWORD email verification codes
+* Reset password page verifies code and updates password
+* Password reset clears existing sessions for the user
 * EmailVerificationCode model for REGISTER and RESET_PASSWORD codes
 * PasswordResetToken model for future password reset links
 * Email verification code helper functions in lib/emailCode.ts
@@ -294,7 +298,7 @@ Implemented:
 ## Recommended Next Task
 
 Next task:
-Password reset flow.
+Email notification preferences, or account security cleanup.
 
 ## Later Roadmap
 
@@ -306,7 +310,7 @@ After payment preflight cleanup phase 1:
 2. Email system:
 
    * Register email verification integration (completed)
-   * Password reset flow
+   * Password reset flow (completed)
    * Real SMTP provider configuration
    * Email notification preferences
 3. Real payment integration:
@@ -1207,3 +1211,66 @@ After payment preflight cleanup phase 1:
 * 找回密码流程尚未接入页面和重置密码 API
 
 推荐下一步：找回密码流程
+---
+
+## Update Record: Password Reset Flow
+
+本次完成：
+
+* 新增 `/forgot-password` 页面
+* 新增 `/reset-password` 页面
+* 登录页和登录弹窗新增“忘记密码？”入口
+* 复用 `POST /api/auth/send-email-code` 发送 `RESET_PASSWORD` 验证码
+* 新增 `POST /api/auth/reset-password`
+* 后端校验邮箱、验证码、新密码和确认密码
+* 邮箱不存在时不暴露账号存在性
+* 验证码正确、未过期、未使用时才允许重置密码
+* 重置成功后更新 passwordHash，消费验证码，并清理该用户旧 session
+* 保持现有登录、注册验证码流程不受影响
+* 更新 EMAIL_FLOW.md 和 CODEX_CONTEXT.md
+
+修改过的文件：
+
+* app/login/page.tsx
+* components/AuthForm.tsx
+* app/forgot-password/page.tsx
+* app/reset-password/page.tsx
+* app/api/auth/reset-password/route.ts
+* EMAIL_FLOW.md
+* CODEX_CONTEXT.md
+
+新增 API：
+
+* POST /api/auth/reset-password
+  * 接收 email / emailCode / password / confirmPassword
+  * 密码规则沿用注册逻辑
+  * 验证 RESET_PASSWORD 邮箱验证码
+  * 重置成功后清理旧 session
+
+测试结果：
+
+* npx tsc --noEmit 通过
+* npm run lint 通过（仍有既有 img 性能 warnings，0 errors）
+* npm run build 通过
+* /forgot-password 页面 HTTP 访问返回 200
+* /reset-password 页面 HTTP 访问返回 200
+* /login 页面包含“忘记密码？”入口
+* RESET_PASSWORD 发送验证码 API 对存在邮箱返回 success=true，并创建验证码
+* RESET_PASSWORD 发送验证码 API 对不存在邮箱返回泛化 success=true，不创建验证码
+* reset-password API 缺少验证码返回“邮箱验证码不能为空”
+* reset-password API 密码不一致返回“两次输入的密码不一致”
+* reset-password API 错误验证码返回“验证码无效”
+* reset-password API 过期验证码返回“验证码已过期”
+* reset-password API 正确验证码可以重置密码，并将验证码标记为 consumed
+* 已使用验证码不能重复重置，返回“验证码已使用”
+* 重置后旧密码不能登录，新密码可以登录
+* 全局扫描 app/components/lib/prisma 未发现 alert/window.confirm
+* 全局扫描 app/components/lib/prisma 未发现用户可见“买断”文案
+* 测试创建的临时用户和验证码已清理
+
+已知问题：
+
+* 真实发送需要配置 `.env.local` 中的 Resend 环境变量，并确保发件域名已在 Resend 验证
+* 邮件通知偏好尚未接入
+
+推荐下一步：邮件通知偏好，或账号安全收尾检查

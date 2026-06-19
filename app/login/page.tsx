@@ -116,9 +116,12 @@ export default function LoginPage() {
             没有账号？去注册
           </Link>
 
-          <span className="text-zinc-600">
-            找回密码稍后开放
-          </span>
+          <Link
+            href="/forgot-password"
+            className="text-zinc-400 hover:text-white underline transition"
+          >
+            忘记密码？
+          </Link>
         </div>
       </div>
     </AuthPageShell>
