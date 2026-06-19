@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
 type AuthMode = "login" | "register";
@@ -29,11 +29,86 @@ export default function AuthForm({
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [emailCode, setEmailCode] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [sendingCode, setSendingCode] = useState(false);
+  const [codeCountdown, setCodeCountdown] = useState(0);
   const [message, setMessage] = useState("");
 
   const isLogin = mode === "login";
+
+  useEffect(() => {
+    if (codeCountdown <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setCodeCountdown((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [codeCountdown]);
+
+  function switchMode(nextMode: AuthMode) {
+    setMode(nextMode);
+    setMessage("");
+
+    if (nextMode === "login") {
+      setEmailCode("");
+      setCodeCountdown(0);
+    }
+  }
+
+  async function handleSendEmailCode() {
+    if (isLogin || sendingCode || codeCountdown > 0) {
+      return;
+    }
+
+    const normalizedEmail = email.trim();
+
+    if (!normalizedEmail) {
+      setMessage("邮箱不能为空");
+      return;
+    }
+
+    if (!normalizedEmail.includes("@")) {
+      setMessage("邮箱格式不正确");
+      return;
+    }
+
+    setMessage("");
+    setSendingCode(true);
+
+    try {
+      const response = await fetch("/api/auth/send-email-code", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: normalizedEmail,
+          purpose: "REGISTER",
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || !result.success) {
+        setMessage(result.message || "发送验证码失败");
+        return;
+      }
+
+      setMessage(result.message || "验证码已发送，请查看邮箱");
+      setCodeCountdown(60);
+    } catch {
+      setMessage("发送验证码失败，请稍后再试");
+    } finally {
+      setSendingCode(false);
+    }
+  }
 
   async function handleLogin() {
     setMessage("");
@@ -107,6 +182,11 @@ export default function AuthForm({
       return;
     }
 
+    if (!emailCode.trim()) {
+      setMessage("邮箱验证码不能为空");
+      return;
+    }
+
     setLoading(true);
 
     const response = await fetch("/api/auth/register", {
@@ -118,6 +198,7 @@ export default function AuthForm({
         email,
         name,
         password,
+        emailCode,
       }),
     });
 
@@ -135,6 +216,8 @@ export default function AuthForm({
     setName("");
     setPassword("");
     setConfirmPassword("");
+    setEmailCode("");
+    setCodeCountdown(0);
     setMode("login");
   }
 
@@ -159,10 +242,7 @@ export default function AuthForm({
       <div className="mb-5 grid grid-cols-2 rounded-full bg-white/5 p-1">
         <button
           type="button"
-          onClick={() => {
-            setMode("login");
-            setMessage("");
-          }}
+          onClick={() => switchMode("login")}
           className={
             isLogin
               ? "rounded-full bg-white px-4 py-2 text-sm font-medium text-black"
@@ -174,10 +254,7 @@ export default function AuthForm({
 
         <button
           type="button"
-          onClick={() => {
-            setMode("register");
-            setMessage("");
-          }}
+          onClick={() => switchMode("register")}
           className={
             !isLogin
               ? "rounded-full bg-white px-4 py-2 text-sm font-medium text-black"
@@ -201,6 +278,36 @@ export default function AuthForm({
             onChange={(e) => setEmail(e.target.value)}
           />
         </label>
+
+        {!isLogin && (
+          <label className="flex flex-col gap-2">
+            <span className="text-sm text-zinc-400">
+              邮箱验证码
+            </span>
+
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+              <input
+                className="min-w-0 rounded-2xl bg-black/60 px-4 py-3 text-white outline-none transition placeholder:text-zinc-600 focus:ring-1 focus:ring-rose-300/60"
+                placeholder="请输入 6 位验证码"
+                value={emailCode}
+                onChange={(e) => setEmailCode(e.target.value)}
+              />
+
+              <button
+                type="button"
+                onClick={handleSendEmailCode}
+                disabled={sendingCode || codeCountdown > 0 || loading}
+                className="rounded-2xl bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:bg-zinc-900 disabled:text-zinc-500"
+              >
+                {sendingCode
+                  ? "发送中..."
+                  : codeCountdown > 0
+                    ? `${codeCountdown} 秒后重发`
+                    : "发送验证码"}
+              </button>
+            </div>
+          </label>
+        )}
 
         {!isLogin && (
           <label className="flex flex-col gap-2">
