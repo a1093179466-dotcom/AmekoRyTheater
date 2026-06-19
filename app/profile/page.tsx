@@ -319,6 +319,23 @@ export default async function ProfilePage() {
                   管理邮件通知偏好
                 </p>
               </Link>
+
+              <Link
+                href="/feedback"
+                className="mt-3 block rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-4 transition hover:border-emerald-300/40 hover:bg-emerald-500/15"
+              >
+                <p className="text-sm font-medium uppercase tracking-[0.25em] text-emerald-300">
+                  Feedback
+                </p>
+
+                <p className="mt-2 text-lg font-bold text-white">
+                  用户反馈
+                </p>
+
+                <p className="mt-1 text-sm text-zinc-400">
+                  提交问题或建议
+                </p>
+              </Link>
             </aside>
 
             <div className="flex flex-col gap-8">

@@ -171,6 +171,12 @@ export default async function DashboardPage() {
       description: "查看用户已经解锁的付费作品记录。",
       badge: "Access",
     },
+    {
+      href: "/dashboard/feedbacks",
+      title: "反馈管理",
+      description: "查看用户和游客提交的问题反馈、功能建议和购买问题。",
+      badge: "Feedback",
+    },
   ];
 
   return (

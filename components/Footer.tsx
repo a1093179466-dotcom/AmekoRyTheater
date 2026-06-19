@@ -158,6 +158,13 @@ export default async function Footer() {
             >
               个人中心
             </Link>
+
+            <Link
+              href="/feedback"
+              className="hover:text-white transition"
+            >
+              用户反馈
+            </Link>
           </div>
         </div>
 

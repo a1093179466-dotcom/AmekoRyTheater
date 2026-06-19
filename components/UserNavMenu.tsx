@@ -155,6 +155,13 @@ export default function UserNavMenu({
             账户设置
           </Link>
 
+          <Link
+            href="/feedback"
+            className="block rounded-xl px-3 py-2 text-zinc-300 transition hover:bg-rose-500/10 hover:text-rose-100"
+          >
+            用户反馈
+          </Link>
+
           <button
             type="button"
             onClick={handleLogout}

@@ -63,6 +63,8 @@ Completed functional areas:
 * Simulated payment and centralized `finalizePaidOrder`
 * Paid-content unlock after payment finalization
 * User profile, avatar upload, order list, purchases, comments
+* User feedback page for guests and logged-in users
+* Admin feedback management page with status updates
 * Notification center and unread count
 * Comment reply notifications
 * Admin notifications for comments, likes, favorites, and purchases
@@ -71,7 +73,7 @@ Completed functional areas:
 * Account settings page for email notification preferences
 * Comment reply email notifications
 * Purchase / unlock email notifications
-* Dashboard overview, post management, upload, edit, orders, purchases, site settings
+* Dashboard overview, post management, upload, edit, orders, purchases, feedbacks, site settings
 * Site ticker, Footer site settings, YouTube / X / Pixiv links
 * About page powered by site settings
 * Homepage background image and Hero image configurable from site settings
@@ -101,6 +103,13 @@ Auth:
 Feedback:
 
 * components/FeedbackProvider.tsx
+* components/FeedbackForm.tsx
+* components/FeedbackStatusSelect.tsx
+* lib/feedback.ts
+* app/feedback/page.tsx
+* app/api/feedbacks/route.ts
+* app/api/feedbacks/[id]/route.ts
+* app/dashboard/feedbacks/page.tsx
 
 Posts:
 
@@ -190,6 +199,7 @@ Important Prisma models include:
 * Favorite
 * Like
 * Notification
+* Feedback
 * EmailVerificationCode
 * PasswordResetToken
 
@@ -206,6 +216,7 @@ Recent additions:
 * SiteSetting homeBackgroundImage / homeHeroImage for homepage visual assets
 * EmailVerificationCode model for register and password reset codes
 * PasswordResetToken model for future password reset links
+* Feedback model for guest and logged-in user submissions
 
 PostImage:
 
@@ -275,7 +286,7 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-Cloud deployment update workflow.
+User feedback system.
 
 Recently completed:
 
@@ -289,17 +300,23 @@ Recently completed:
 * Email failures are logged but do not block comments, replies, payment finalization, or purchase creation
 * `scripts/deploy-update.ps1` for Windows cloud-machine update checks
 * `DEPLOYMENT.md` with first deploy, manual update, scheduled task, logging, failure, and rollback notes
+* `Feedback` Prisma model
+* `/feedback` page for guests and logged-in users
+* `POST /api/feedbacks` submission API
+* `/dashboard/feedbacks` admin feedback management page
+* `PATCH /api/feedbacks/[id]` status update API
 
 ## Recommended Next Task
 
 Next task:
-Test the deployment update script on the cloud machine, install/configure PM2, add the Windows scheduled task, then continue MVP pre-launch cleanup.
+Run full manual feedback-system verification, then continue MVP pre-launch cleanup and real-payment/deployment readiness work.
 ## Later Roadmap
 
 MVP launch readiness route:
 
 1. Pre-launch cleanup
 
+   * test guest and logged-in feedback submission plus admin status updates
    * remove or repurpose `app/api/artworks/route.ts`
    * re-scan frontend copy for development wording and outdated payment labels
    * verify no user-facing “买断” wording remains
@@ -1448,3 +1465,23 @@ Important deployment notes:
 * The script does not run `prisma db push` automatically; first deploy still documents it because the project currently has no Prisma migrations directory.
 * Build failures stop before PM2 reload, so the running process should not be intentionally restarted onto a failed build.
 * The cloud machine should install PM2 globally or run the script with `-RestartMode none` only for build-only validation.
+---
+
+## Update Record: User Feedback System
+
+Completed in this pass:
+
+* Added `Feedback` Prisma model with optional `userId`, optional contact `email`, `type`, `title`, `content`, `status`, `createdAt`, and `updatedAt`.
+* Added `/feedback` page for both guests and logged-in users. Logged-in users get their account email prefilled.
+* Added `POST /api/feedbacks` so guests and users can submit feedback.
+* Added `/dashboard/feedbacks` admin page to view feedback list, expand details, and update status.
+* Added `PATCH /api/feedbacks/[id]` for admin-only status changes.
+* Added feedback entry points in Footer, user menu, profile sidebar, and dashboard management links.
+* Feedback UI uses `FeedbackProvider` toast behavior and does not use native `alert` or `window.confirm`.
+
+Manual verification focus:
+
+* Guest can open `/feedback` from Footer and submit without logging in.
+* Logged-in user can open `/feedback` from user menu or profile, sees email prefilled, and submitted feedback stores `userId`.
+* Admin can open `/dashboard/feedbacks`, see list/detail, and update status.
+* Non-admin access to `/dashboard/feedbacks` redirects away through `requireAdminPage`.
