@@ -31,11 +31,19 @@ Project positioning:
 
 ## Current MVP Status
 
-Completed:
+Current status:
 
-* User registration
+* MVP application flow is broadly complete for content browsing, account auth, paid-content simulation, user interactions, notifications, email verification, password reset, and admin content management.
+* The main blocker for real commercial launch is still real payment provider integration and production deployment readiness.
+* Current payment flow is simulated payment only. Do not treat it as production payment.
+* Current local uploads live under `public/uploads`; production needs persistent file storage or backup strategy.
+
+Completed functional areas:
+
+* User registration with REGISTER email verification code
 * Login / logout
 * Session-based auth
+* Forgot password and reset password with RESET_PASSWORD email code
 * Admin / normal user roles
 * Admin dashboard protection
 * Work posts and notice posts
@@ -43,61 +51,42 @@ Completed:
 * Draft / published status
 * Pinned posts
 * Cover image upload
-* Post creation
-* Post editing
-* Post deletion
-* Gallery list
-* Notice list
-* Post detail page
-* Comments
+* Multi-image upload, edit, delete, and detail gallery / carousel
+* Post creation, editing, deletion
+* Gallery list, notice list, post detail page
+* Comments and first-level replies
 * Comment delete permissions
+* Post likes and favorites
+* Profile favorites page
 * Order system
 * Purchase access system
-* Simulated payment
-* User profile
-* User avatar upload
-* Avatar display in profile and comments
-* Dashboard overview
-* Dashboard post management
-* Dashboard upload page
-* Dashboard edit page
-* Dashboard orders page
-* Dashboard purchases page
-* Dashboard site settings page
-* Toast / custom confirm system
-* Intercepted login/register modal routes
-* Site ticker
-* Footer site settings
-* YouTube / X / Pixiv configurable footer icon links
-* Multi-image upload foundation
-* Multi-image picker on create/edit forms
-* Post detail image gallery / carousel
-* Delete existing gallery images from edit page
-* Comment replies
-* Post likes
-* Post favorites
-* Profile “my favorites” page
-* Notification center
+* Simulated payment and centralized `finalizePaidOrder`
+* Paid-content unlock after payment finalization
+* User profile, avatar upload, order list, purchases, comments
+* Notification center and unread count
 * Comment reply notifications
 * Admin notifications for comments, likes, favorites, and purchases
-* Navbar user avatar menu
-* Navbar unread notification badge
-* Click notification to mark read and navigate
-* Card-level like / favorite controls
+* Email system with dev-console and Resend providers
+* Email verification code anti-abuse and purpose isolation
+* Account settings page for email notification preferences
+* Comment reply email notifications
+* Purchase / unlock email notifications
+* Dashboard overview, post management, upload, edit, orders, purchases, site settings
+* Site ticker, Footer site settings, YouTube / X / Pixiv links
 * About page powered by site settings
 * Homepage background image and Hero image configurable from site settings
-* Payment preflight cleanup
-* Centralized simulated payment finalization
-* PAYMENT_FLOW.md documentation
-* Email system preflight
-* Dev-console email sender
-* Resend email provider support
-* Register email verification integration
-* Password reset flow
-* Email verification code foundation
-* Password reset token foundation
-* EMAIL_FLOW.md documentation
+* Toast / custom confirm system for core interactions
+* Intercepted login/register/forgot/reset modal routes
+* PAYMENT_FLOW.md, EMAIL_FLOW.md, ROADMAP.md documentation
 
+Known MVP pre-launch concerns:
+
+* `app/api/artworks/route.ts` appears to be an old test endpoint and should be removed or assigned a real purpose before launch.
+* Real payment provider callback and signature verification are not implemented.
+* Production storage for uploads is not settled.
+* Resend production sender domain, quota, bounce behavior, and spam-folder behavior still need real-environment verification.
+* `PasswordResetToken` is currently a reserved model; active password reset uses email verification codes.
+* New-post email blast is intentionally not implemented yet.
 ## Important Existing Files
 
 Auth:
@@ -276,59 +265,51 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-Password reset flow.
+Reply and purchase email notifications.
 
-Implemented:
+Recently completed:
 
-* Dev-console email sender in lib/email.ts
-* Resend provider mode in lib/email.ts
-* EMAIL_PROVIDER / RESEND_API_KEY / EMAIL_FROM environment variables documented
-* Register page sends REGISTER email verification codes with a 60-second resend countdown
-* Register API requires and consumes a valid REGISTER email code
-* Forgot password page sends RESET_PASSWORD email verification codes
-* Reset password page verifies code and updates password
-* Password reset clears existing sessions for the user
-* EmailVerificationCode model for REGISTER and RESET_PASSWORD codes
-* PasswordResetToken model for future password reset links
-* Email verification code helper functions in lib/emailCode.ts
-* POST /api/auth/send-email-code endpoint
-* EMAIL_FLOW.md documents dev-console and Resend provider modes
-* Existing register and login flows remain unchanged
+* Account email security polish for verification-code cooldown and rate limiting
+* `/profile/settings` account settings page
+* Email notification preferences on `User`
+* `GET /api/profile/settings` and `PATCH /api/profile/settings`
+* `lib/emailNotifications.ts`
+* Comment reply email notifications, gated by `emailNotifyCommentReply`
+* Purchase success / content unlock email notifications, gated by `emailNotifyPurchase`
+* Email failures are logged but do not block comments, replies, payment finalization, or purchase creation
 
 ## Recommended Next Task
 
 Next task:
-Email notification preferences, or account security cleanup.
-
+MVP pre-launch cleanup, especially removing old test endpoints, final wording scan, and deciding whether this launch is an internal preview or a real paid launch.
 ## Later Roadmap
 
-After payment preflight cleanup phase 1:
+MVP launch readiness route:
 
-1. Favicon / site icon handling
+1. Pre-launch cleanup
 
-   * manual replacement first, upload flow can be delayed
-2. Email system:
+   * remove or repurpose `app/api/artworks/route.ts`
+   * re-scan frontend copy for development wording and outdated payment labels
+   * verify no user-facing “买断” wording remains
+   * verify no native alert / window.confirm remains in core UI
+2. Real payment decision
 
-   * Register email verification integration (completed)
-   * Password reset flow (completed)
-   * Real SMTP provider configuration
-   * Email notification preferences
-3. Real payment integration:
+   * internal preview can keep simulated payment clearly marked as test-only
+   * real paid launch must connect provider callback, signature verification, amount validation, idempotency, and callback audit records
+3. Production deployment
 
-   * EPAY order creation
-   * notify_url callback
-   * signature verification
-   * providerTradeNo
-   * paymentType
-   * mark Order as PAID only after verified backend callback
-4. Deployment:
+   * production PostgreSQL
+   * HTTPS and domain
+   * SITE_URL configured to official domain
+   * persistent upload storage or backup strategy
+   * Resend sender domain and deliverability verification
+4. Post-launch enhancements
 
-   * production database
-   * HTTPS
-   * domain
-   * persistent file storage
-   * backup strategy
-
+   * dashboard search and filters
+   * comment likes
+   * system notifications
+   * new-post email notifications with batching / queueing
+   * favicon and brand polish
 ---
 
 ## Update Record: Delete Existing Gallery Images
@@ -1393,3 +1374,44 @@ After payment preflight cleanup phase 1:
 * dev-console 冒烟：关闭购买通知偏好的用户支付成功后未收到购买邮件，购买权限仍创建。
 * 故意缺少 Resend 配置时，购买支付仍 finalizedNow=true，purchase 创建成功，只记录邮件失败日志。
 * 测试创建的临时用户、帖子、订单、购买记录和通知已清理。
+---
+
+## Update Record: MVP Readiness and Roadmap Review
+
+本次完成：
+
+* 阅读当前项目路由、关键组件和流程文档。
+* 更新 `CODEX_CONTEXT.md` 顶部 MVP 状态，修正“最新完成是密码重置”等过时描述。
+* 重排 `ROADMAP.md`，改为 MVP 当前状态、三类用户入口、关键链路、开发痕迹、上线前必须做、上线后再做、暂不建议做。
+* 同步标记当前真实上线最大阻塞：真实支付、生产部署、持久化上传存储和邮件生产配置验证。
+* 记录 `app/api/artworks/route.ts` 是疑似早期测试接口，需要上线前处理。
+* 保留“模拟支付”作为当前开发态说明，不在本轮改业务逻辑。
+
+三类用户入口检查：
+
+* 游客：Navbar 可进入首页、作品、公告、关于、登录、注册；登录/注册/忘记密码弹窗与独立页面均存在。
+* 普通用户：头像菜单可进入个人中心、通知、账户设置并退出；个人中心有订单、购买、评论、收藏、通知、设置入口。
+* 管理员：Navbar 可进入后台；后台有发布、内容管理、站点设置、订单管理、购买权限入口。
+
+关键链路状态：
+
+* 注册验证码：已完成，含防刷、过期、已使用、purpose 隔离。
+* 登录 / 退出：已完成。
+* 找回密码：已完成，重置后清理旧 session。
+* 作品浏览：已完成。
+* 评论 / 回复：已完成第一轮。
+* 点赞 / 收藏：已完成。
+* 购买 / 解锁：模拟支付闭环已完成，真实支付未完成。
+* 站内通知：已完成第一轮。
+* 邮件通知：评论回复和购买成功已完成，新作品群发预留。
+* 账户设置：已完成邮件通知偏好。
+* 后台内容管理：MVP 可用，UI 可继续打磨。
+
+发现的问题：
+
+* `ROADMAP.md` 原先多处仍把邮箱验证码、找回密码、邮件偏好写成待做，已修正。
+* `CODEX_CONTEXT.md` 顶部状态落后于实际功能，已修正。
+* `EMAIL_FLOW.md` 的 Next Steps 原本仍建议做已完成的邮件通知偏好，已同步改为生产邮件配置和后续群发策略。
+* `PAYMENT_FLOW.md` 原本缺少购买成功邮件通知说明，已补充购买解锁邮件不影响支付主流程的边界。
+* `app/api/artworks/route.ts` 是明显开发痕迹，建议上线前删除或重写。
+* 前台支付仍是模拟支付文案；真实收费上线前必须接真实支付。

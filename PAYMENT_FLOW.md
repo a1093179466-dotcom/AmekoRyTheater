@@ -17,6 +17,7 @@ No real payment provider is connected yet. Do not treat any frontend action as a
 7. `finalizePaidOrder` creates or updates the matching `Purchase`.
 8. The paid work becomes unlocked for that user.
 9. Admin users receive a `POST_PURCHASED` notification.
+10. If the buyer enables `emailNotifyPurchase`, the buyer receives a purchase / unlock email. Email failure is logged and does not roll back the payment flow.
 
 ## Idempotency Rules
 
@@ -69,4 +70,6 @@ Before real payment integration, confirm whether to add:
 * `Purchase` can only be created after backend-confirmed payment success.
 * Payment callbacks must be idempotent.
 * Admin purchase notifications should only be sent when an order first transitions to `PAID`.
+* Buyer purchase emails should only be sent when an order first transitions to `PAID` and the buyer has `emailNotifyPurchase` enabled.
+* Email notification failure must not affect order payment finalization or purchase creation.
 * Simulated payment exists only for local development and preflight testing.
