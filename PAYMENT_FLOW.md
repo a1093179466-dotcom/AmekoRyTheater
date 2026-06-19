@@ -6,6 +6,15 @@ AmekoRyTheater currently uses simulated payment only.
 
 No real payment provider is connected yet. Do not treat any frontend action as a verified payment result.
 
+EPAY integration is in preflight structure only. See `EPAY_FLOW.md`.
+
+Current provider scaffolding:
+
+* `lib/paymentProviders/types.ts`
+* `lib/paymentProviders/epay.ts`
+
+The EPAY provider code is intentionally not wired into the order UI, simulated payment API, or `finalizePaidOrder` yet.
+
 ## Current Order Lifecycle
 
 1. User clicks the purchase button on a paid work.
@@ -48,6 +57,14 @@ For the current simulated flow, `POST /api/orders/[id]/pay` is the only endpoint
 6. Backend calls `finalizePaidOrder`.
 7. Frontend `return_url` only displays the result. It must not mark payment as successful.
 
+Planned route shape:
+
+* `POST /api/payments/epay/create`
+* `POST /api/payments/epay/notify`
+* `GET /orders/payment-return`
+
+The exact request fields, signing rules, notify method, and success response text must be confirmed from the merchant backend and official docs before implementation.
+
 ## Fields To Confirm Before Real Payment
 
 The current `Order` model already has:
@@ -64,6 +81,20 @@ Before real payment integration, confirm whether to add:
 * callback request audit logs
 * refund-related fields
 
+EPAY-specific fields still need confirmation:
+
+* gateway URL
+* merchant PID field name and value
+* merchant key
+* request endpoint and method
+* payment type values
+* amount format
+* notify payload field names
+* signature algorithm and signing field rules
+* notify success response text
+* return_url parameters
+* retry policy and timeout behavior
+
 ## Principles
 
 * The frontend cannot decide payment success.
@@ -73,3 +104,4 @@ Before real payment integration, confirm whether to add:
 * Buyer purchase emails should only be sent when an order first transitions to `PAID` and the buyer has `emailNotifyPurchase` enabled.
 * Email notification failure must not affect order payment finalization or purchase creation.
 * Simulated payment exists only for local development and preflight testing.
+* Do not guess EPAY signing rules. Keep real payment disabled until official docs and merchant settings are confirmed.

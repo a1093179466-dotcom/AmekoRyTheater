@@ -79,13 +79,15 @@ Completed functional areas:
 * Homepage background image and Hero image configurable from site settings
 * Toast / custom confirm system for core interactions
 * Intercepted login/register/forgot/reset modal routes
-* PAYMENT_FLOW.md, EMAIL_FLOW.md, ROADMAP.md, DEPLOYMENT.md documentation
+* PAYMENT_FLOW.md, EPAY_FLOW.md, EMAIL_FLOW.md, ROADMAP.md, DEPLOYMENT.md documentation
 * Windows deployment update script for cloud-machine auto updates
+* EPAY preflight documentation and provider scaffold
 
 Known MVP pre-launch concerns:
 
 * `app/api/artworks/route.ts` appears to be an old test endpoint and should be removed or assigned a real purpose before launch.
 * Real payment provider callback and signature verification are not implemented.
+* EPAY provider scaffold exists, but it is intentionally not wired into checkout yet.
 * Production storage for uploads is not settled.
 * Resend production sender domain, quota, bounce behavior, and spam-folder behavior still need real-environment verification.
 * `PasswordResetToken` is currently a reserved model; active password reset uses email verification codes.
@@ -148,6 +150,11 @@ Deployment:
 * DEPLOYMENT.md
 * scripts/deploy-update.ps1
 
+Payment providers:
+
+* lib/paymentProviders/types.ts
+* lib/paymentProviders/epay.ts
+
 Orders and purchases:
 
 * components/PurchaseButton.tsx
@@ -160,6 +167,7 @@ Orders and purchases:
 * app/dashboard/purchases/page.tsx
 * lib/payment.ts
 * PAYMENT_FLOW.md
+* EPAY_FLOW.md
 
 Profile and avatar:
 
@@ -286,7 +294,7 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-User feedback system.
+EPAY payment integration preflight scaffold.
 
 Recently completed:
 
@@ -305,11 +313,15 @@ Recently completed:
 * `POST /api/feedbacks` submission API
 * `/dashboard/feedbacks` admin feedback management page
 * `PATCH /api/feedbacks/[id]` status update API
+* `EPAY_FLOW.md` preflight integration document
+* `lib/paymentProviders/types.ts` and `lib/paymentProviders/epay.ts` scaffold
+* EPAY environment variable examples in `.env.example`
+* PAYMENT_FLOW.md / ROADMAP.md updates for EPAY preflight
 
 ## Recommended Next Task
 
 Next task:
-Run full manual feedback-system verification, then continue MVP pre-launch cleanup and real-payment/deployment readiness work.
+Confirm EPAY merchant parameters and official signing docs, then implement real EPAY create/notify/return routes without removing simulated payment until verified.
 ## Later Roadmap
 
 MVP launch readiness route:
@@ -317,6 +329,7 @@ MVP launch readiness route:
 1. Pre-launch cleanup
 
    * test guest and logged-in feedback submission plus admin status updates
+   * confirm EPAY merchant parameters, official signing rules, notify_url, and return_url
    * remove or repurpose `app/api/artworks/route.ts`
    * re-scan frontend copy for development wording and outdated payment labels
    * verify no user-facing “买断” wording remains
@@ -970,6 +983,7 @@ MVP launch readiness route:
 * app/api/orders/[id]/pay/route.ts
 * lib/payment.ts
 * PAYMENT_FLOW.md
+* EPAY_FLOW.md
 * CODEX_CONTEXT.md
 
 新增的支付服务函数：
@@ -984,6 +998,7 @@ MVP launch readiness route:
 新增的文档：
 
 * PAYMENT_FLOW.md
+* EPAY_FLOW.md
 
 修复的 lint 问题：
 
@@ -1485,3 +1500,23 @@ Manual verification focus:
 * Logged-in user can open `/feedback` from user menu or profile, sees email prefilled, and submitted feedback stores `userId`.
 * Admin can open `/dashboard/feedbacks`, see list/detail, and update status.
 * Non-admin access to `/dashboard/feedbacks` redirects away through `requireAdminPage`.
+---
+
+## Update Record: EPAY Payment Integration Preflight
+
+Completed in this pass:
+
+* Read `PAYMENT_FLOW.md`, `lib/payment.ts`, order creation, simulated payment route, order detail page, and `Order` model.
+* Added `EPAY_FLOW.md` with the future order creation, payment redirect, notify_url, return_url, signature verification, amount validation, and idempotency plan.
+* Added EPAY environment placeholders to `.env.example` without real keys.
+* Added `lib/paymentProviders/types.ts` for provider-neutral payment create / notify types.
+* Added `lib/paymentProviders/epay.ts` for EPAY env reading, config status checks, intentionally disabled payment request / signature placeholders, and sanitized payload logging.
+* Kept current simulated payment route and `PayOrderButton` unchanged.
+* Updated `PAYMENT_FLOW.md` and `ROADMAP.md` to mark EPAY as scaffold-only and real payment as still blocked on merchant docs.
+
+Important constraints:
+
+* Do not guess EPAY signing rules. Official docs must confirm algorithm, fields, sorting, encoding, amount format, status values, and notify success response.
+* `return_url` must never mark an order as paid. Only verified server-side `notify_url` may call `finalizePaidOrder`.
+* The production `notify_url` must be public HTTPS and reachable by EPAY servers. Localhost or private cloud-machine addresses are not sufficient.
+* Simulated payment remains the active development flow until EPAY is fully implemented and tested.
