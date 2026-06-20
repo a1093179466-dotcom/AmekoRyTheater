@@ -294,7 +294,7 @@ The user has had GitHub push issues caused by proxy/VPN before. Turning off prox
 ## Current Completed Step
 
 The latest completed feature is:
-EPAY payment integration preflight scaffold.
+EPAY official integration rules documentation.
 
 Recently completed:
 
@@ -317,11 +317,14 @@ Recently completed:
 * `lib/paymentProviders/types.ts` and `lib/paymentProviders/epay.ts` scaffold
 * EPAY environment variable examples in `.env.example`
 * PAYMENT_FLOW.md / ROADMAP.md updates for EPAY preflight
+* Official V2 EPAY rules documented from `https://mch.h6c.cn/doc/index.html`
+* V1 old rules explicitly marked as historical reference only
+* V2 missing field/signature details listed without guessing
 
 ## Recommended Next Task
 
 Next task:
-Confirm EPAY merchant parameters and official signing docs, then implement real EPAY create/notify/return routes without removing simulated payment until verified.
+Get the missing full V2 EPAY field table / SDK / merchant-backend settings, then implement real EPAY create/notify/return routes without removing simulated payment until verified.
 ## Later Roadmap
 
 MVP launch readiness route:
@@ -1520,3 +1523,24 @@ Important constraints:
 * `return_url` must never mark an order as paid. Only verified server-side `notify_url` may call `finalizePaidOrder`.
 * The production `notify_url` must be public HTTPS and reachable by EPAY servers. Localhost or private cloud-machine addresses are not sufficient.
 * Simulated payment remains the active development flow until EPAY is fully implemented and tested.
+---
+
+## Update Record: EPAY Official Integration Rules Documentation
+
+Completed in this pass:
+
+* Read `EPAY_FLOW.md`, `PAYMENT_FLOW.md`, `lib/payment.ts`, and `lib/paymentProviders/epay.ts`.
+* Reviewed the official V2 docs at `https://mch.h6c.cn/doc/index.html`.
+* Confirmed V2 general protocol: `application/x-www-form-urlencoded` submit format, JSON responses, UTF-8, `SHA256WithRSA`, RSA key generation in merchant backend, platform public key plus merchant private key, and V2 timestamp usage.
+* Confirmed the linked V1 old docs are MD5 / `submit.php` / `mapi.php` rules and must not be reused for V2 unless official support explicitly says so.
+* Rewrote `EPAY_FLOW.md` to separate confirmed V2 rules, V1 historical reference, and still-missing V2 details.
+* Did not change the simulated payment API, `PayOrderButton`, or `finalizePaidOrder`.
+* Added ignore protection for local EPAY private-key text files so a future `git add .` does not accidentally stage them.
+
+Still missing before real EPAY implementation:
+
+* Full V2 order-create endpoint URL and method.
+* Full V2 required field list and field names.
+* V2 signing field list, sorting rule, canonical string format, encoding rule, and signature output format.
+* V2 amount format, success status field/value, notify method, notify payload fields, and notify success response content.
+* Whether V2 return_url carries a signature and whether it should be verified.

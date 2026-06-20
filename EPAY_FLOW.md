@@ -1,21 +1,91 @@
 # EPAY_FLOW.md
 
-本文档记录 EPAY 真实支付接入前置设计。本轮只搭结构和文档，不替换当前模拟支付。
+This document records the Yingnai EPAY real-payment integration plan. This pass only documents official rules and integration boundaries. It does not replace the current simulated payment flow.
+
+Official sources:
+
+* V2 docs: https://mch.h6c.cn/doc/index.html
+* V1 old docs: https://mch.h6c.cn/doc_old.html
+
+Important distinction: the V2 docs state that V2 uses new interface addresses and RSA signing. V1 details such as `submit.php`, `mapi.php`, MD5 signing, `TRADE_SUCCESS`, and the `success` notify response are V1-only reference unless the merchant backend or official support explicitly says to keep using V1.
 
 ## Current Status
 
-当前线上 / 本地开发仍使用模拟支付：
+The app still uses simulated payment:
 
-* `POST /api/orders` 创建 `PENDING` 订单。
-* `/orders/[id]` 展示订单详情。
-* `POST /api/orders/[id]/pay` 只用于模拟支付。
-* 模拟支付成功后调用 `finalizePaidOrder`。
+* `POST /api/orders` creates a `PENDING` order.
+* `/orders/[id]` shows order details.
+* `POST /api/orders/[id]/pay` is simulated payment only.
+* Simulated success calls `finalizePaidOrder`.
 
-EPAY 真实支付尚未接入，不能把任何前端跳转或 `return_url` 当作支付成功依据。
+EPAY real payment is not connected yet. A frontend redirect or `return_url` must never be treated as verified payment success.
+
+## Confirmed V2 Rules
+
+Confirmed from the current V2 official page:
+
+* Submit data format: `application/x-www-form-urlencoded`.
+* Response data format: `JSON`.
+* Charset: `UTF-8`.
+* Signature algorithm: `SHA256WithRSA`.
+* V2 uses RSA signing.
+* V1 uses MD5 signing.
+* V2 uses new interface addresses.
+* V1 uses `submit.php` and `mapi.php` for order submission.
+* V2 adds `timestamp` request and response values for timestamp validation.
+* RSA keys are generated in merchant backend: personal profile -> API info -> generate merchant RSA key pair.
+* Integration needs the platform public key and merchant private key.
+
+## Still Missing From Current V2 Docs
+
+The readable V2 page does not provide these details, so the project must not guess them:
+
+* Full V2 order-create endpoint URL.
+* V2 order-create HTTP method.
+* Full required field list for V2 order creation.
+* V2 field names for merchant id, merchant order number, subject, amount, payment type, notify_url, return_url, etc.
+* V2 signing field list.
+* Whether V2 excludes `sign`, `sign_type`, and empty values.
+* V2 field sorting rule.
+* V2 canonical string format.
+* V2 URL-encoding rule.
+* V2 amount format: `1`, `1.00`, cents, or something else.
+* V2 payment-success status field and value.
+* V2 notify_url HTTP method.
+* Full V2 notify payload field list.
+* V2 notify success response content.
+* Whether V2 return_url carries a signature.
+* Whether return_url must be verified if it carries a signature.
+* V2 notify retry and timeout rules.
+* Whether V2 supports sandbox / test mode.
+* Whether V2 requires IP allowlist, domain binding, or certificate setup.
+
+These must be confirmed from merchant backend, a full official API field page, SDK code, or official support. Do not send real keys in chat.
+
+## V1 Old Rules For Reference Only
+
+The linked old docs confirm these V1 rules. They are useful historical reference, not V2 rules:
+
+* Page payment URL: `https://svipp.004a.cn/submit.php`.
+* API payment URL: `https://svipp.004a.cn/mapi.php`.
+* Page payment method: `POST` or `GET`, with `POST` recommended.
+* API payment method: `POST`.
+* V1 amount field `money` example: `1.00`, unit yuan, max 2 decimals.
+* V1 payment notification method: `GET`.
+* V1 success status: `trade_status=TRADE_SUCCESS`.
+* V1 successful notify response: `success`.
+* V1 signing algorithm: MD5.
+* V1 signing sort rule: parameter names sorted by ASCII ascending order.
+* V1 signing exclusions: `sign`, `sign_type`, and empty values are excluded.
+* V1 canonical format: `a=b&c=d&e=f`.
+* V1 parameter values are not URL-encoded for signing.
+* V1 signature: `md5(sortedQuery + KEY)`, lowercase.
+
+Because V2 explicitly switches to RSA and new interface addresses, do not reuse V1 signing rules for V2 real payment unless official support confirms compatibility.
 
 ## Environment Variables
 
-需要在 `.env.local` 或部署环境变量中配置：
+Current `.env.example` placeholders:
 
 ```env
 EPAY_GATEWAY_URL="https://example-epay-gateway.example.com/submit.php"
@@ -25,198 +95,181 @@ EPAY_NOTIFY_URL="https://your-domain.example.com/api/payments/epay/notify"
 EPAY_RETURN_URL="https://your-domain.example.com/orders/payment-return"
 ```
 
-注意：
+The V2 docs say the integration needs both platform public key and merchant private key. The current `EPAY_KEY` name is only a preflight placeholder. Before real V2 implementation, decide whether to replace it with explicit variables such as:
 
-* `.env.example` 只能保留示例值。
-* 不要把真实 `EPAY_PID`、`EPAY_KEY` 或商户后台截图发到聊天或提交到 Git。
-* `EPAY_KEY` 只能在服务端使用，不得传给浏览器。
+* `EPAY_MERCHANT_PRIVATE_KEY`
+* `EPAY_PLATFORM_PUBLIC_KEY`
+
+Real keys must only live in server `.env.local` or deployment environment variables. Do not commit them and do not send them in chat.
 
 ## Provider Structure
 
-新增结构：
+Current scaffold:
 
 * `lib/paymentProviders/types.ts`
 * `lib/paymentProviders/epay.ts`
 
-当前 `epay.ts` 只提供：
+`epay.ts` currently only provides:
 
-* EPAY 环境变量读取。
-* 配置完整性检查。
-* 支付请求构建占位函数。
-* notify 签名验证占位函数。
-* 回调日志脱敏辅助函数。
+* EPAY environment reading.
+* Config completeness checks.
+* A disabled payment request builder placeholder.
+* A disabled notify verification placeholder.
+* Sanitized callback payload logging helper.
 
-它不会被现有模拟支付流程调用，也不会改变当前购买 / 解锁行为。
+It is not called by current simulated payment and does not change purchase / unlock behavior.
 
 ## Future Order Flow
 
-下一轮真实接入建议保持订单创建逻辑不变：
+Recommended future real-payment flow:
 
-1. 用户点击购买。
-2. `POST /api/orders` 创建或复用有效的 `PENDING` 订单。
-3. 后端读取订单、作品、用户信息。
-4. 后端创建 EPAY 支付请求。
-5. 前端跳转到 EPAY 收银台。
-6. 用户在 EPAY 完成支付。
-7. EPAY 请求后端 `notify_url`。
-8. 后端验签、校验订单号、金额、状态。
-9. 后端调用 `finalizePaidOrder`。
-10. 用户回到 `return_url`，页面只展示结果，不写订单状态。
+1. User clicks purchase.
+2. `POST /api/orders` creates or reuses a valid `PENDING` order.
+3. Backend reads order, post, and user data.
+4. Backend creates an EPAY payment request.
+5. Frontend redirects to EPAY checkout.
+6. User pays on EPAY.
+7. EPAY calls backend `notify_url`.
+8. Backend verifies signature, order number, amount, and status.
+9. Backend calls `finalizePaidOrder`.
+10. User returns to `return_url`; the page only reads and displays order status.
 
 ## Future API Shape
 
-建议下一轮新增：
+Recommended future routes:
 
 * `POST /api/payments/epay/create`
-  * 登录用户才能调用。
-  * 校验订单属于当前用户。
-  * 校验订单仍是 `PENDING`。
-  * 根据官方文档生成 EPAY 参数和签名。
-  * 返回跳转 URL 或自动提交表单需要的参数。
+  * Requires login.
+  * Checks that the order belongs to the current user.
+  * Checks that the order is still `PENDING`.
+  * Builds EPAY params and signature using the full official V2 field rules.
+  * Returns redirect URL or auto-submit form params.
 
-* `POST /api/payments/epay/notify`
-  * EPAY 服务端回调入口。
-  * 不依赖登录态。
-  * 必须验签。
-  * 必须校验金额、订单号、支付状态。
-  * 成功后调用 `finalizePaidOrder`。
-  * 返回 EPAY 官方文档要求的确认文本。
+* `POST` or `GET /api/payments/epay/notify`
+  * Method must be confirmed from V2 docs.
+  * Server-to-server EPAY callback.
+  * Does not depend on login cookies.
+  * Must verify signature.
+  * Must validate amount, order number, and payment status.
+  * On success, calls `finalizePaidOrder`.
+  * Returns the exact V2 official success response content.
 
 * `GET /orders/payment-return`
-  * 用户支付后返回页面。
-  * 只读取订单状态并展示。
-  * 不做支付成功写入。
-
-具体方法名、参数名、HTTP method、成功响应文本必须以商户后台和官方文档为准。
+  * User browser return page after payment.
+  * If V2 return_url carries a signature, verify it before showing detailed result.
+  * Even if return_url verification passes, it only reads order state and never marks an order paid.
 
 ## Notify URL Rules
 
-`notify_url` 必须是 EPAY 服务器可以从公网访问的 HTTPS 地址。
+`notify_url` must be a public HTTPS URL reachable by EPAY servers.
 
-建议最终配置：
+Recommended production value:
 
 ```env
 EPAY_NOTIFY_URL="https://668177.xyz/api/payments/epay/notify"
 ```
 
-如果正式域名不是 `668177.xyz`，就替换为实际生产域名。
+If the production domain is not `668177.xyz`, replace it with the real domain.
 
-本地 `localhost`、局域网 IP、只在云电脑内部可访问的地址，都不能作为正式 `notify_url`。
+`localhost`, LAN IPs, and cloud-machine-private addresses cannot be used as production `notify_url`.
 
-内网穿透可以用于联调，但需要满足：
+A tunnel can be used for integration testing only if:
 
-* 有稳定公网 HTTPS 地址。
-* EPAY 能访问到该地址。
-* Windows 防火墙、云电脑安全组、反向代理端口都已放行。
-* 隧道不能频繁变更域名。
+* It provides a stable public HTTPS URL.
+* EPAY can reach it.
+* Windows firewall, cloud security group, and reverse proxy ports allow traffic.
+* The tunnel domain does not frequently change.
 
-正式收费上线更建议使用固定域名和 HTTPS 反向代理，不建议长期依赖临时内网穿透。
+For real paid launch, prefer a fixed domain and HTTPS reverse proxy instead of temporary tunneling.
 
 ## Return URL Rules
 
-`return_url` 是用户浏览器跳回网站的页面。
+`return_url` is the browser return page.
 
-建议最终配置：
+Recommended production value:
 
 ```env
 EPAY_RETURN_URL="https://668177.xyz/orders/payment-return"
 ```
 
-`return_url` 不能：
+`return_url` must not:
 
-* 直接把订单标记为已支付。
-* 创建 `Purchase`。
-* 发送购买通知。
+* Mark an order as paid.
+* Create `Purchase`.
+* Send purchase notifications.
 
-它只能读取后端订单状态并提示“支付成功 / 待确认 / 支付失败”。
+It only reads backend order state and displays success / pending / failed. Current V2 readable docs do not confirm whether return_url carries a signature. If it carries one, verify it; if not, still do not use it as payment-success authority.
 
 ## Signature Verification
 
-本轮不实现 EPAY 签名规则，因为还需要官方文档确认：
+Confirmed:
 
-* 签名算法：MD5、HMAC，还是其他。
-* 参与签名的字段列表。
-* 是否排除 `sign`、`sign_type`。
-* 字段排序规则。
-* 空值字段是否参与签名。
-* 拼接格式。
-* 字符集。
-* URL 编码规则。
-* 金额字段格式。
-* 成功状态字段和值。
-* notify 成功后需要返回的文本。
+* V2 signature algorithm is `SHA256WithRSA`.
+* Integration needs platform public key and merchant private key.
+* V2 has `timestamp` request and response values for timestamp validation.
 
-在确认前，代码不得猜签名规则，也不得上线真实支付。
+Still missing:
+
+* Signing field list.
+* Whether to exclude `sign`, `sign_type`, and empty values.
+* Sorting rule.
+* Canonical string format.
+* URL-encoding rule.
+* Whether the signing input charset is fixed as UTF-8.
+* Whether the signature output is Base64.
+* Exact scenario for merchant private key signing.
+* Exact scenario for platform public key verification.
+* Allowed timestamp window.
+
+Until these are confirmed, code must not guess V2 signing rules and real payment must stay disabled.
 
 ## Idempotency
 
-EPAY notify 可能重复到达，后端必须幂等：
+EPAY notify may be repeated. Backend must be idempotent:
 
-* 通过 `orderNo` 查找内部订单。
-* 如果订单已经 `PAID`，验证金额和平台流水后返回成功。
-* 不重复创建 `Purchase`。
-* 不重复创建管理员购买通知。
-* 不重复发送购买邮件。
-* 对 `CANCELLED` 订单的处理策略需要在真实支付接入前确认。
+* Find internal order by `Order.orderNo`.
+* If already `PAID`, validate amount and provider trade number, then return success.
+* Do not duplicate `Purchase`.
+* Do not duplicate admin purchase notifications.
+* Do not duplicate purchase emails.
+* Handling strategy for `CANCELLED` orders needs confirmation before real integration.
 
-当前 `finalizePaidOrder` 已经集中处理：
+`finalizePaidOrder` already centralizes:
 
-* `PENDING` 到 `PAID` 的状态更新。
-* `Purchase` upsert。
-* 管理员购买通知。
-* 买家购买成功邮件。
-* 重复调用的 paid-state 返回。
+* `PENDING` to `PAID` transition.
+* `Purchase` upsert.
+* Admin purchase notifications.
+* Buyer purchase success email.
+* Already-paid return path.
 
-真实 EPAY notify 验签成功后应复用 `finalizePaidOrder`，不要复制订单解锁逻辑。
+Verified EPAY notify should reuse `finalizePaidOrder`; do not duplicate unlock logic inside callback routes.
 
 ## Amount And Order Validation
 
-notify_url 必须校验：
+notify_url must validate:
 
-* EPAY 回传订单号对应本地 `Order.orderNo`。
-* 本地订单存在。
-* 本地订单金额与 EPAY 回传金额一致。
-* 本地订单仍符合允许支付的状态策略。
-* EPAY 回传支付状态是官方定义的成功状态。
-* EPAY 平台流水号可保存到 `Order.providerTradeNo`。
-* EPAY 支付方式可保存到 `Order.paymentType`。
+* EPAY order number matches local `Order.orderNo`.
+* Local order exists.
+* Local amount matches EPAY amount.
+* Local order status is allowed by the payment strategy.
+* EPAY status is the official V2 success status.
+* EPAY provider trade number can be saved to `Order.providerTradeNo`.
+* EPAY payment type can be saved to `Order.paymentType`.
 
-金额格式必须确认：
-
-* 本项目当前 `Order.amount` 是整数，展示为人民币元。
-* EPAY 是否要求 `1`、`1.00` 或分为单位，需要官方文档确认。
-
-## Fields To Confirm
-
-需要从商户后台和官方文档确认：
-
-* 正式网关地址。
-* 商户号字段名和值。
-* 商户密钥。
-* 支持的支付方式值。
-* 支付请求路径和 HTTP method。
-* 支付请求字段名：订单号、金额、商品名、notify_url、return_url 等。
-* 支付请求签名规则。
-* notify 回调字段名：商户订单号、平台流水号、金额、状态、支付方式、签名等。
-* notify 回调 method。
-* notify 成功响应文本。
-* return_url 字段和参数。
-* notify 重试规则和超时时间。
-* 是否支持 sandbox / test mode。
-* IP 白名单或域名绑定要求。
+V2 amount format is not confirmed by the readable V2 page. V1 `money=1.00` is historical reference only and must not be treated as V2 rule.
 
 ## Next Integration Files
 
-下一轮真实接入预计会改：
+Next real integration likely changes:
 
 * `lib/paymentProviders/epay.ts`
 * `lib/paymentProviders/types.ts`
 * `app/api/payments/epay/create/route.ts`
 * `app/api/payments/epay/notify/route.ts`
 * `app/orders/payment-return/page.tsx`
-* `components/PayOrderButton.tsx` 或新增 `EpayPayButton.tsx`
+* `components/PayOrderButton.tsx` or new `EpayPayButton.tsx`
 * `app/orders/[id]/page.tsx`
 * `lib/payment.ts`
 * `PAYMENT_FLOW.md`
 
-如需记录回调审计，还可能新增 Prisma 模型，例如 `PaymentCallbackLog`。是否新增应等官方字段确认后决定。
+If callback auditing is needed, a new Prisma model such as `PaymentCallbackLog` may be added after V2 fields are confirmed.

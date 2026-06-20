@@ -60,3 +60,6 @@ public/uploads/*
 
 # Deployment logs
 logs/
+# Local payment provider secrets
+*私钥*.txt
+*密钥*.txt

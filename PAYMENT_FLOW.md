@@ -81,6 +81,15 @@ Before real payment integration, confirm whether to add:
 * callback request audit logs
 * refund-related fields
 
+Confirmed from current V2 docs:
+
+* data submit format: `application/x-www-form-urlencoded`
+* response format: JSON
+* charset: UTF-8
+* signature algorithm: `SHA256WithRSA`
+* V2 uses platform public key and merchant private key
+* V2 uses timestamp validation
+
 EPAY-specific fields still need confirmation:
 
 * gateway URL
@@ -90,7 +99,7 @@ EPAY-specific fields still need confirmation:
 * payment type values
 * amount format
 * notify payload field names
-* signature algorithm and signing field rules
+* V2 signature field list, sorting rule, canonical string, encoding, and signature output format
 * notify success response text
 * return_url parameters
 * retry policy and timeout behavior
